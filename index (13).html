@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bioretention Infiltration Over Time — A SWMM5 / ICM / SWMM6 Reading</title>
+<meta name="description" content="An interactive reading of Skorobogatov et al. (2026) on bioretention infiltration, mapped onto SWMM5 Bio-Retention Cell LID controls, InfoWorks ICM SuDS, and SWMM6 ideas.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!-- GIF walkthrough deps (load from CDN; graceful fallback if blocked) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+
+<style>
+:root{
+  --ink:#15202b; --ink-soft:#3c4c59; --ink-faint:#6a7884;
+  --paper:#f2f3ef; --paper-2:#e7e9e2; --surface:#ffffff; --surface-2:#fbfbf9;
+  --line:#d7dbd2; --line-soft:#e6e9e1;
+  --water:#0d7d8c; --water-deep:#0a5b66; --water-soft:#e1f0f1; --water-line:#bfe0e2;
+  --grow:#2f8f4e; --grow-deep:#216b3a; --grow-soft:#e6f2e9;
+  --alert:#bd3f12; --alert-soft:#fbe7df;
+  --amber:#bf8500; --amber-soft:#f8eed2;
+  --m-coc70:#d7c48f; --m-coc40:#b08a47; --m-cl:#5f4026;
+  --shadow:0 1px 2px rgba(21,32,43,.05), 0 8px 24px rgba(21,32,43,.06);
+  --shadow-lg:0 2px 6px rgba(21,32,43,.08), 0 18px 50px rgba(21,32,43,.10);
+  --r:14px; --r-sm:9px;
+  --maxw:1180px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:16px; line-height:1.62;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+.serif{font-family:"Newsreader",Georgia,serif}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+h1,h2,h3,h4{font-family:"Newsreader",Georgia,serif; font-weight:500; line-height:1.12; letter-spacing:-.01em; color:var(--ink); margin:0}
+a{color:var(--water-deep); text-decoration-thickness:1px; text-underline-offset:2px}
+.eyebrow{font-family:"IBM Plex Mono",monospace; font-size:.7rem; font-weight:500; letter-spacing:.16em; text-transform:uppercase; color:var(--water-deep)}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px}
+.muted{color:var(--ink-soft)}
+.faint{color:var(--ink-faint)}
+:focus-visible{outline:2.5px solid var(--water); outline-offset:2px; border-radius:4px}
+button{font-family:inherit}
+
+/* ---------- top nav ---------- */
+header.top{position:sticky; top:0; z-index:30; background:rgba(242,243,239,.86); backdrop-filter:blur(10px); border-bottom:1px solid var(--line)}
+.top-inner{max-width:var(--maxw); margin:0 auto; padding:10px 22px; display:flex; align-items:center; gap:18px}
+.brand{display:flex; align-items:center; gap:11px; min-width:0}
+.brand .mark{width:30px; height:30px; flex:none}
+.brand b{font-family:"Newsreader",serif; font-weight:600; font-size:1.06rem; letter-spacing:-.01em; white-space:nowrap}
+.brand small{display:block; font-size:.66rem; letter-spacing:.04em; color:var(--ink-faint); font-family:"IBM Plex Mono",monospace}
+nav.tabs{margin-left:auto; display:flex; gap:2px; overflow-x:auto; scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+.tab{border:0; background:transparent; color:var(--ink-soft); font-size:.86rem; font-weight:500; padding:8px 13px; border-radius:999px; white-space:nowrap; cursor:pointer; transition:.15s}
+.tab:hover{color:var(--ink); background:var(--paper-2)}
+.tab.active{color:#fff; background:var(--ink)}
+
+/* ---------- panels ---------- */
+.panel{display:none; animation:fade .4s ease}
+.panel.active{display:block}
+@keyframes fade{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
+section{padding:34px 0}
+.section-head{max-width:760px; margin-bottom:22px}
+.section-head h2{font-size:clamp(1.5rem,3.4vw,2.15rem)}
+.section-head p{color:var(--ink-soft); margin:.5rem 0 0}
+
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); padding:22px}
+.grid{display:grid; gap:18px}
+@media(min-width:820px){
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g-2-1{grid-template-columns:1.55fr 1fr}
+  .g-1-2{grid-template-columns:1fr 1.55fr}
+}
+
+/* ---------- hero ---------- */
+.hero{padding:48px 0 30px}
+.hero-grid{display:grid; gap:30px; align-items:center}
+@media(min-width:940px){.hero-grid{grid-template-columns:1.25fr .9fr}}
+.kicker{display:inline-flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line); border-radius:999px; padding:5px 13px 5px 9px; font-size:.74rem; color:var(--ink-soft); box-shadow:var(--shadow)}
+.kicker .dot{width:7px; height:7px; border-radius:50%; background:var(--grow)}
+.hero h1{font-size:clamp(2.1rem,6vw,4rem); margin:18px 0 0; font-weight:500}
+.hero h1 .up{color:var(--grow-deep); font-style:italic; position:relative}
+.hero h1 .down{color:var(--alert); text-decoration:line-through; text-decoration-thickness:3px; text-decoration-color:var(--alert)}
+.hero .lede{font-size:1.12rem; color:var(--ink-soft); max-width:54ch; margin:18px 0 0}
+.hero .cites{margin-top:18px; font-size:.82rem; color:var(--ink-faint); font-family:"IBM Plex Mono",monospace; line-height:1.5}
+.hero-cta{display:flex; flex-wrap:wrap; gap:10px; margin-top:22px}
+.btn{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--ink); background:var(--ink); color:#fff; font-weight:600; font-size:.9rem; padding:10px 16px; border-radius:999px; cursor:pointer; transition:.15s}
+.btn:hover{transform:translateY(-1px); box-shadow:var(--shadow-lg)}
+.btn.ghost{background:transparent; color:var(--ink)}
+.btn.ghost:hover{background:var(--surface)}
+.btn.water{background:var(--water); border-color:var(--water)}
+.btn.sm{padding:7px 12px; font-size:.8rem}
+
+/* ---------- soil column (signature) ---------- */
+.column-stage{display:flex; justify-content:center}
+svg .lyr-hit{cursor:pointer}
+.col-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow-lg); padding:16px}
+.col-legend{display:flex; gap:14px; flex-wrap:wrap; margin-top:10px; font-size:.74rem; color:var(--ink-soft)}
+.col-legend span{display:inline-flex; align-items:center; gap:6px}
+.sw{width:11px; height:11px; border-radius:3px; display:inline-block}
+
+/* ---------- metric strip ---------- */
+.metrics{display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-top:24px}
+@media(min-width:720px){.metrics{grid-template-columns:repeat(4,1fr)}}
+.metric{background:var(--surface); border:1px solid var(--line); border-radius:var(--r-sm); padding:14px 15px; box-shadow:var(--shadow)}
+.metric .v{font-family:"IBM Plex Mono",monospace; font-size:1.55rem; font-weight:600; color:var(--ink); line-height:1; font-variant-numeric:tabular-nums}
+.metric .v small{font-size:.62rem; color:var(--ink-faint); font-weight:500}
+.metric .l{font-size:.74rem; color:var(--ink-soft); margin-top:7px}
+.metric.good .v{color:var(--grow-deep)}
+
+/* ---------- controls ---------- */
+.ctrl{margin-bottom:16px}
+.ctrl .row{display:flex; justify-content:space-between; align-items:baseline; gap:10px}
+.ctrl label{font-size:.85rem; font-weight:600; color:var(--ink)}
+.ctrl .val{font-family:"IBM Plex Mono",monospace; font-size:.82rem; color:var(--water-deep); font-weight:500; font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:5px; border-radius:99px; background:var(--paper-2); margin-top:9px; outline-offset:4px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:var(--water); border:3px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.25); cursor:pointer}
+input[type=range]::-moz-range-thumb{width:18px; height:18px; border-radius:50%; background:var(--water); border:3px solid #fff; cursor:pointer}
+.seg{display:inline-flex; background:var(--paper-2); border-radius:999px; padding:3px; gap:2px; flex-wrap:wrap}
+.seg button{border:0; background:transparent; color:var(--ink-soft); font-size:.8rem; font-weight:600; padding:6px 12px; border-radius:999px; cursor:pointer; transition:.12s}
+.seg button.on{background:var(--surface); color:var(--ink); box-shadow:var(--shadow)}
+.seg.water button.on{background:var(--water); color:#fff}
+.chiprow{display:flex; gap:8px; flex-wrap:wrap; margin-top:6px}
+.chip{border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:.78rem; font-weight:600; padding:6px 11px; border-radius:999px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:.12s}
+.chip .sw{width:10px;height:10px}
+.chip.on{border-color:var(--ink); color:var(--ink); background:var(--surface-2)}
+.chip.off{opacity:.5}
+
+/* ---------- chart ---------- */
+.chart-box{width:100%}
+.chart-box svg{width:100%; height:auto; display:block; overflow:visible}
+.axis text{font-family:"IBM Plex Mono",monospace; font-size:10px; fill:var(--ink-faint)}
+.grid-line{stroke:var(--line-soft); stroke-width:1}
+.note{font-size:.78rem; color:var(--ink-faint); margin-top:10px}
+
+/* ---------- tables ---------- */
+table.tbl{width:100%; border-collapse:collapse; font-size:.86rem}
+table.tbl th,table.tbl td{text-align:left; padding:9px 11px; border-bottom:1px solid var(--line-soft)}
+table.tbl th{font-family:"IBM Plex Mono",monospace; font-size:.68rem; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint); font-weight:500}
+table.tbl td.mono,table.tbl td .mono{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums}
+table.tbl tr:last-child td{border-bottom:0}
+.pos{color:var(--grow-deep); font-weight:600}
+.neg{color:var(--alert); font-weight:600}
+
+/* layer reveal */
+.layer-detail{border:1px solid var(--line); border-radius:var(--r); overflow:hidden; background:var(--surface); box-shadow:var(--shadow)}
+.layer-detail .head{padding:16px 18px; color:#fff; display:flex; align-items:center; gap:12px}
+.layer-detail .head .tag{font-family:"IBM Plex Mono",monospace; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase; background:rgba(255,255,255,.22); padding:3px 8px; border-radius:6px}
+.layer-detail .body{padding:18px}
+.ld-block{margin-bottom:16px}
+.ld-block:last-child{margin-bottom:0}
+.ld-block h4{font-size:1rem; display:flex; align-items:center; gap:8px; margin-bottom:6px}
+.ld-block .icn{width:18px; height:18px; flex:none}
+.paramline{font-family:"IBM Plex Mono",monospace; font-size:.8rem; background:var(--paper); border:1px solid var(--line-soft); border-radius:8px; padding:9px 11px; margin-top:8px; overflow-x:auto; white-space:nowrap; color:var(--ink)}
+.kbd{font-family:"IBM Plex Mono",monospace; font-size:.78rem; background:var(--paper-2); border-radius:5px; padding:1px 6px; color:var(--ink)}
+
+/* code block */
+.code{background:#101a22; color:#cfe7ea; border-radius:var(--r); padding:16px 18px; font-family:"IBM Plex Mono",monospace; font-size:.82rem; line-height:1.65; overflow-x:auto; position:relative}
+.code .c{color:#6f8a90}        /* comment */
+.code .k{color:#7fd1de}        /* keyword */
+.code .n{color:#e6c07b}        /* number */
+.code .v{color:#9ee493}        /* value/highlight */
+.code .s{color:#e0a0b0}        /* string */
+.copy{position:absolute; top:10px; right:10px; background:rgba(255,255,255,.1); color:#cfe7ea; border:1px solid rgba(255,255,255,.18); border-radius:7px; font-size:.72rem; padding:5px 9px; cursor:pointer; font-family:"IBM Plex Mono",monospace}
+.copy:hover{background:rgba(255,255,255,.2)}
+
+/* callouts */
+.call{border-left:3px solid var(--water); background:var(--water-soft); border-radius:0 10px 10px 0; padding:14px 16px; font-size:.92rem}
+.call.grow{border-color:var(--grow); background:var(--grow-soft)}
+.call.alert{border-color:var(--alert); background:var(--alert-soft)}
+.call.amber{border-color:var(--amber); background:var(--amber-soft)}
+.call b{color:var(--ink)}
+.call .lab{font-family:"IBM Plex Mono",monospace; font-size:.66rem; letter-spacing:.08em; text-transform:uppercase; display:block; margin-bottom:4px; color:var(--ink-soft)}
+
+ul.tight{margin:.4rem 0; padding-left:1.1rem}
+ul.tight li{margin:.3rem 0}
+.hr{height:1px; background:var(--line); margin:28px 0; border:0}
+
+.pill-row{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
+.pill{font-family:"IBM Plex Mono",monospace; font-size:.72rem; padding:4px 9px; border-radius:999px; background:var(--paper-2); color:var(--ink-soft)}
+.pill.t{background:var(--water-soft); color:var(--water-deep)}
+.pill.g{background:var(--grow-soft); color:var(--grow-deep)}
+.pill.a{background:var(--alert-soft); color:var(--alert)}
+
+/* decision helper */
+.dh-out{border:1px dashed var(--line); border-radius:var(--r); padding:16px; background:var(--surface-2)}
+.dh-verdict{font-family:"Newsreader",serif; font-size:1.25rem; margin-bottom:6px}
+
+/* footer */
+footer{border-top:1px solid var(--line); margin-top:40px; padding:26px 0 60px; color:var(--ink-faint); font-size:.82rem}
+footer .wrap{display:flex; flex-wrap:wrap; gap:14px; justify-content:space-between; align-items:center}
+
+/* modal + tour */
+.overlay{position:fixed; inset:0; background:rgba(18,28,36,.55); z-index:60; display:none; align-items:center; justify-content:center; padding:18px}
+.overlay.show{display:flex}
+.modal{background:var(--surface); border-radius:18px; max-width:560px; width:100%; box-shadow:var(--shadow-lg); padding:26px; max-height:88vh; overflow:auto}
+.modal h2{font-size:1.6rem}
+.modal .x{float:right; border:0; background:var(--paper-2); width:30px; height:30px; border-radius:8px; cursor:pointer; color:var(--ink-soft); font-size:1rem}
+.tour-overlay{position:fixed; inset:0; background:rgba(18,28,36,.5); z-index:55; display:none}
+.tour-overlay.show{display:block}
+.tour-tip{position:fixed; z-index:56; background:var(--surface); border-radius:14px; box-shadow:var(--shadow-lg); padding:18px; max-width:330px; display:none}
+.tour-tip.show{display:block}
+.spotlight{position:fixed; z-index:55; border:2.5px solid var(--water); border-radius:12px; box-shadow:0 0 0 9999px rgba(18,28,36,.5); pointer-events:none; display:none; transition:.2s}
+.spotlight.show{display:block}
+
+.float-btns{position:fixed; right:16px; bottom:16px; z-index:40; display:flex; flex-direction:column; gap:10px; align-items:flex-end}
+.fbtn{border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:999px; box-shadow:var(--shadow-lg); cursor:pointer; font-weight:600; font-size:.82rem; padding:10px 14px; display:inline-flex; align-items:center; gap:8px}
+.fbtn.round{width:46px; height:46px; padding:0; justify-content:center; font-size:1.1rem}
+.fbtn:hover{transform:translateY(-1px)}
+#gifStatus{font-size:.72rem; background:var(--ink); color:#fff; padding:8px 12px; border-radius:999px; display:none; max-width:240px}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms !important; transition-duration:.001ms !important; scroll-behavior:auto}
+}
+.hidden{display:none !important}
+.reveal{opacity:0; transform:translateY(14px); transition:opacity .6s ease, transform .6s ease}
+.reveal.in{opacity:1; transform:none}
+
+/* ---------- paste-and-map textarea + diff highlighting ---------- */
+.inpbox{width:100%; min-height:150px; resize:vertical; font-family:"IBM Plex Mono",monospace; font-size:.82rem; line-height:1.55; color:var(--ink); background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-sm); padding:12px 14px; box-sizing:border-box}
+.inpbox:focus{outline:2px solid var(--water); outline-offset:1px}
+table.tbl tr.diff td{background:rgba(13,125,140,.07)}
+.dline{font-family:"IBM Plex Mono",monospace; font-size:.82rem; line-height:1.7; white-space:pre-wrap; word-break:break-word}
+.dline .d{color:var(--water-deep); font-weight:600}
+.tag{display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:.64rem; letter-spacing:.05em; text-transform:uppercase; padding:2px 7px; border-radius:5px; background:var(--paper-2); color:var(--ink-soft); margin-left:6px}
+
+/* ---------- print: expand every tab into one report, drop interactive chrome ---------- */
+@media print{
+  :root{ --shadow:none }
+  body{background:#fff}
+  .top, nav.tabs, .fbtn, #gifStatus, #tour, #welcome, .copy, #genCopy, #genDownload, .seg, input[type="range"]{ display:none !important }
+  .panel{ display:block !important; animation:none; break-inside:avoid }
+  .panel + .panel{ border-top:2px solid #222; margin-top:18px; padding-top:18px }
+  .reveal{ opacity:1 !important; transform:none !important }
+  .card{ box-shadow:none; border:1px solid #bbb; break-inside:avoid }
+  .code{ background:#f4f4f4; color:#111; border:1px solid #ccc }
+  .code .c{color:#555} .code .k{color:#0a5566} .code .n{color:#7a5a00} .code .v{color:#1d6b2a} .code .s{color:#8a3b50}
+  a{ color:#000; text-decoration:underline }
+  a[href^="http"]::after{ content:" (" attr(href) ")"; font-size:.7em; color:#555; word-break:break-all }
+  h1,h2,h3,h4{ break-after:avoid }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ TOP NAV ============ -->
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 40 40" aria-hidden="true">
+        <rect x="3" y="3" width="34" height="34" rx="8" fill="#15202b"/>
+        <rect x="9" y="9" width="22" height="6" rx="2" fill="#0d7d8c"/>
+        <rect x="9" y="17" width="22" height="9" rx="2" fill="#a8843f"/>
+        <rect x="9" y="28" width="22" height="4" rx="1.5" fill="#5f4026"/>
+        <path d="M20 9 L20 32" stroke="#9ee493" stroke-width="1.6" stroke-dasharray="2 2" opacity=".8"/>
+        <circle cx="20" cy="13" r="1.7" fill="#e1f0f1"/>
+      </svg>
+      <div>
+        <b>Bioretention Infiltration, Over Time</b>
+        <small>Skorobogatov et&nbsp;al. 2026 → SWMM5 · ICM · SWMM6</small>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Sections of this reading">
+      <button class="tab active" data-tab="finding" id="tab-finding" role="tab" aria-controls="panel-finding" aria-selected="true" tabindex="0">The Finding</button>
+      <button class="tab" data-tab="column" id="tab-column" role="tab" aria-controls="panel-column" aria-selected="false" tabindex="-1">Soil Column → Params</button>
+      <button class="tab" data-tab="swmm5" id="tab-swmm5" role="tab" aria-controls="panel-swmm5" aria-selected="false" tabindex="-1">SWMM5 Mapping</button>
+      <button class="tab" data-tab="icm" id="tab-icm" role="tab" aria-controls="panel-icm" aria-selected="false" tabindex="-1">ICM InfoWorks</button>
+      <button class="tab" data-tab="swmm6" id="tab-swmm6" role="tab" aria-controls="panel-swmm6" aria-selected="false" tabindex="-1">SWMM6 Ideas</button>
+      <button class="tab" data-tab="practice" id="tab-practice" role="tab" aria-controls="panel-practice" aria-selected="false" tabindex="-1">Practice</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<!-- ================= TAB 1: THE FINDING ================= -->
+<div class="panel active" id="panel-finding" role="tabpanel" aria-labelledby="tab-finding" tabindex="-1">
+
+  <div class="hero wrap">
+    <div class="hero-grid">
+      <div>
+        <span class="kicker"><span class="dot"></span> Ecological Engineering 230 (2026) 108020 · 4 years, 24 mesocosms</span>
+        <h1>Infiltration went <span class="up">up</span>, not <span class="down">down</span>.</h1>
+        <p class="lede">A four-year field study in Okotoks, Alberta watched 24 bioretention cells under repeated, sediment-laden runoff. The clogging decline everyone designs around never showed up. Mean infiltration <b>climbed from 286 to 875&nbsp;mm/h</b>. This is what that means for the way you model LID in SWMM5, SuDS in ICM, and what a SWMM6 engine could finally represent.</p>
+        <div class="hero-cta">
+          <button class="btn" id="cta-column">See the parameter mapping →</button>
+          <button class="btn ghost" id="cta-swmm5">The SWMM5 clogging problem</button>
+        </div>
+        <p class="cites">Skorobogatov A, He J, Chu A, Valeo C, van Duin B. (2026).<br>“Bioretention system infiltration: Insights into temporal evolution and impacts of design parameters.” <span class="faint">doi:10.1016/j.ecoleng.2026.108020</span></p>
+      </div>
+
+      <div class="column-stage">
+        <div class="col-card" id="hero-col">
+          <div class="eyebrow" style="margin-bottom:8px">The cell, four layers</div>
+          <!-- animated bioretention column -->
+          <svg viewBox="0 0 230 300" width="230" height="300" aria-label="Bioretention cell cross-section">
+            <defs>
+              <clipPath id="cellClip"><rect x="22" y="20" width="186" height="262" rx="6"/></clipPath>
+              <linearGradient id="waterG" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#1fa3b3"/><stop offset="1" stop-color="#0d7d8c"/>
+              </linearGradient>
+            </defs>
+            <g clip-path="url(#cellClip)">
+              <!-- ponding / surface -->
+              <rect x="22" y="20" width="186" height="64" fill="#eef6f6"/>
+              <!-- soil/media -->
+              <rect x="22" y="84" width="186" height="118" fill="#bd9a5c"/>
+              <rect x="22" y="84" width="186" height="118" fill="none"/>
+              <!-- storage / gravel -->
+              <rect x="22" y="202" width="186" height="56" fill="#7d6748"/>
+              <!-- underdrain band -->
+              <rect x="22" y="258" width="186" height="24" fill="#574330"/>
+              <!-- gravel dots -->
+              <g fill="#574330" opacity=".5">
+                <circle cx="40" cy="216" r="3"/><circle cx="64" cy="230" r="3.4"/><circle cx="92" cy="220" r="2.6"/><circle cx="120" cy="234" r="3.2"/><circle cx="150" cy="218" r="3"/><circle cx="178" cy="232" r="3.4"/><circle cx="55" cy="246" r="2.6"/><circle cx="110" cy="248" r="3"/><circle cx="165" cy="245" r="2.8"/>
+              </g>
+              <!-- roots -->
+              <g stroke="#2f8f4e" stroke-width="2" fill="none" opacity=".85" stroke-linecap="round">
+                <path d="M80 84 C76 110 90 130 84 168"/>
+                <path d="M84 110 C72 116 66 124 60 132"/>
+                <path d="M84 140 C96 146 104 152 110 162"/>
+                <path d="M148 84 C150 104 142 122 150 150"/>
+                <path d="M150 120 C162 124 168 130 172 138"/>
+              </g>
+              <!-- vegetation tops -->
+              <g stroke="#2f8f4e" stroke-width="2.4" fill="none" stroke-linecap="round">
+                <path d="M80 84 L80 52"/><path d="M80 60 L72 50"/><path d="M80 64 L88 52"/>
+                <path d="M148 84 L148 48"/><path d="M148 58 L140 46"/><path d="M148 62 L156 50"/>
+              </g>
+              <!-- ponded water (animated height) -->
+              <rect id="pond" x="22" y="44" width="186" height="40" fill="url(#waterG)" opacity=".9"/>
+              <!-- infiltration arrows -->
+              <g stroke="#0d7d8c" stroke-width="1.6" opacity=".55">
+                <path id="inf1" d="M50 86 L50 120" marker-end="url(#ar)"/>
+                <path id="inf2" d="M115 86 L115 130" marker-end="url(#ar)"/>
+                <path id="inf3" d="M180 86 L180 118" marker-end="url(#ar)"/>
+              </g>
+              <marker id="ar" markerWidth="7" markerHeight="7" refX="3.5" refY="6" orient="auto"><path d="M0 0 L3.5 6 L7 0" fill="#0d7d8c"/></marker>
+            </g>
+            <rect x="22" y="20" width="186" height="262" rx="6" fill="none" stroke="#15202b" stroke-width="1.4"/>
+            <!-- labels -->
+            <g font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#15202b">
+              <text x="0" y="40" transform="rotate(-90 8 52)">SURFACE</text>
+              <text x="0" y="150" transform="rotate(-90 8 150)">SOIL / MEDIA</text>
+              <text x="0" y="232" transform="rotate(-90 8 232)">STORAGE</text>
+            </g>
+            <!-- underdrain pipe -->
+            <circle cx="208" cy="270" r="5" fill="#101a22"/><circle cx="208" cy="270" r="2" fill="#cfe7ea"/>
+          </svg>
+          <div class="col-legend">
+            <span><i class="sw" style="background:#0d7d8c"></i>Ponded water</span>
+            <span><i class="sw" style="background:#bd9a5c"></i>Media (Ksat)</span>
+            <span><i class="sw" style="background:#2f8f4e"></i>Roots</span>
+            <span><i class="sw" style="background:#574330"></i>Underdrain</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric good"><div class="v"><span class="cnt" data-to="205" data-dp="0" data-prefix="+">+205</span><small>%</small></div><div class="l">Mean infiltration, event 1 → 72 (286 → 875 mm/h)</div></div>
+      <div class="metric"><div class="v"><span class="cnt" data-to="0.89" data-dp="2">0.89</span><small>η²</small></div><div class="l">Media-type effect size — the dominant parameter</div></div>
+      <div class="metric good"><div class="v"><span class="cnt" data-to="6.81" data-dp="2" data-prefix="+">+6.81</span><small>mm/h/event</small></div><div class="l">LMM time slope — significant, positive</div></div>
+      <div class="metric"><div class="v">0/24<small>cells</small></div><div class="l">Configurations that significantly declined</div></div>
+    </div>
+  </div>
+
+  <section class="wrap">
+    <div class="grid g-2-1">
+      <div class="card reveal">
+        <div class="eyebrow">Temporal evolution (Fig. 2a, reproduced from reported values)</div>
+        <h3 style="margin:6px 0 4px">The trend points the wrong way for clogging</h3>
+        <p class="muted" style="font-size:.92rem; margin:0 0 14px">Drag toggles to overlay each media's across-event mean. The rising line is the aggregate mean across all 24 cells.</p>
+        <div class="chart-box" id="tempChart"></div>
+        <div class="chiprow" id="tempToggles"></div>
+        <p class="note">Built only from values reported in the paper: first/last event means (286 / 875 mm/h), media means (CoC 70 = 287, CoC 40 = 479, CL = 1086 mm/h), and the LMM time slope (+6.814 mm/h per event). Not a re-simulation.</p>
+      </div>
+      <div class="grid" style="align-content:start; gap:18px">
+        <div class="card reveal">
+          <div class="eyebrow">What they built</div>
+          <h3 style="margin:6px 0 8px">The experiment, in one breath</h3>
+          <ul class="tight muted" style="font-size:.92rem">
+            <li><b>24 lined mesocosms</b>, 1.8 × 1.8 × 1.2 m (0.30 ponding / 0.60 media / 0.30 gravel + underdrain).</li>
+            <li><b>3 media</b> × <b>3 vegetation</b> × <b>2 loadings</b>, factorial design.</li>
+            <li><b>72 simulated runoff events</b>, 2017–2020, 5/10/15/25 mm, with <b>400 mg/L</b> sediment added.</li>
+            <li>Infiltration = ponded-surface drawdown rate (single-ring analogy).</li>
+          </ul>
+        </div>
+        <div class="card reveal" style="background:var(--grow-soft); border-color:var(--grow)">
+          <div class="eyebrow" style="color:var(--grow-deep)">The reversal that matters for modelers</div>
+          <p style="margin:6px 0 0; font-size:.95rem">William et&nbsp;al. (2019) say 3 years is enough to detect clogging in filtration systems. Four years here, under <i>higher-than-typical</i> sediment, and clogging never became the failure mode. The authors' read: in well-vegetated cells, biological structure development outruns sediment occlusion.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">The three design knobs</div>
+      <h2>Media leads. Vegetation matters. Loading hides.</h2>
+      <p>Effect sizes (partial η²) from the event-by-event factorial ANOVA, Table 3. The size of each bar is how much variance in infiltration that factor explained.</p>
+    </div>
+    <div class="grid g-2-1">
+      <div class="card reveal">
+        <div class="chart-box" id="effectChart"></div>
+        <p class="note">η² of 0.2 / 0.5 / 0.8 ≈ small / medium / large (Strunk &amp; Mwavita 2020). Significant in: media 66/72 events, vegetation 36/72, IP ratio 21/72.</p>
+      </div>
+      <div class="grid" style="align-content:start; gap:14px">
+        <div class="call"><span class="lab">Media — η² 0.89</span><b>CL (clay-loam + 40% wood chips)</b> ran highest at 1086 mm/h, beating both sand mixes. Texture alone (sand %) is a poor predictor — the coarse organic offset the fines.</div>
+        <div class="call grow"><span class="lab">Vegetation — η² 0.59</span><b>Herbaceous</b> (886 mm/h) beat woody and turfgrass — likely the thick-rooted <i>Carex atheroides</i>. Turfgrass was the only loser. Counter to the "bigger plant = more infiltration" consensus.</div>
+        <div class="call amber"><span class="lab">IP ratio — η² 0.33</span>Loading was <b>not</b> significant in the LMM, but IP 15 (779) still beat IP 30 (566), and its influence grew in year 4. Coarse inflow sediment (D50 0.693 mm) was bigger than the media pores, so it didn't seal them.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="card reveal">
+      <div class="eyebrow">Four hypotheses, scored</div>
+      <h3 style="margin:6px 0 14px">How the paper's predictions held up</h3>
+      <table class="tbl">
+        <thead><tr><th>Hypothesis</th><th>Result</th><th style="text-align:right">Modeling read</th></tr></thead>
+        <tbody>
+          <tr><td>H1 — Media is the strongest main effect</td><td class="pos">Supported</td><td style="text-align:right" class="muted">Calibrate <span class="kbd">Ksat</span> first; it dominates.</td></tr>
+          <tr><td>H2 — Vegetated ≥ turfgrass over time</td><td class="pos">Supported</td><td style="text-align:right" class="muted">Herbaceous most; turf least.</td></tr>
+          <tr><td>H3 — Higher IP reduces / limits gains</td><td style="color:var(--amber); font-weight:600">Partial</td><td style="text-align:right" class="muted">Descriptive trend; not significant in LMM.</td></tr>
+          <tr><td>H4 — Higher infiltration → more biology (CO₂)</td><td style="color:var(--amber); font-weight:600">Mixed</td><td style="text-align:right" class="muted">Held across media, broke across vegetation.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<!-- ================= TAB 2: SOIL COLUMN → PARAMS ================= -->
+<div class="panel" id="panel-column" role="tabpanel" aria-labelledby="tab-column" tabindex="-1">
+  <section class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">The signature view</div>
+      <h2>One column, three models.</h2>
+      <p>The mesocosm's physical layers are exactly the layer groups you fill in for a SWMM5 Bio-Retention Cell and an ICM SuDS bioretention control. Click a layer to see the paper's reality next to the parameters it drives.</p>
+    </div>
+
+    <div class="grid g-1-2">
+      <!-- interactive column -->
+      <div class="card reveal" style="display:flex; flex-direction:column; align-items:center; gap:6px">
+        <div class="eyebrow" style="align-self:flex-start">Click a layer</div>
+        <svg id="bigCol" viewBox="0 0 250 330" width="250" height="330" style="max-width:100%">
+          <defs>
+            <linearGradient id="wG2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1fa3b3"/><stop offset="1" stop-color="#0d7d8c"/></linearGradient>
+          </defs>
+          <!-- SURFACE -->
+          <g class="lyr-hit" data-layer="surface">
+            <rect x="30" y="18" width="190" height="70" rx="5" fill="#eef6f6" stroke="#0d7d8c" stroke-width="1.2"/>
+            <rect x="30" y="50" width="190" height="38" fill="url(#wG2)" opacity=".85"/>
+            <g stroke="#2f8f4e" stroke-width="2.4" fill="none" stroke-linecap="round">
+              <path d="M90 88 L90 30"/><path d="M90 44 L80 30"/><path d="M90 50 L100 34"/>
+              <path d="M160 88 L160 26"/><path d="M160 40 L150 26"/><path d="M160 46 L170 30"/>
+            </g>
+            <text x="125" y="112" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#0a5b66" font-weight="600">SURFACE</text>
+          </g>
+          <!-- SOIL -->
+          <g class="lyr-hit" data-layer="soil">
+            <rect x="30" y="120" width="190" height="110" rx="3" fill="#bd9a5c" stroke="#8a6a35" stroke-width="1.2"/>
+            <g stroke="#2f8f4e" stroke-width="2" fill="none" opacity=".8" stroke-linecap="round">
+              <path d="M90 120 C84 150 100 175 92 215"/><path d="M92 150 C78 156 72 164 66 172"/>
+              <path d="M160 120 C162 145 152 168 162 200"/><path d="M162 162 C175 167 181 173 186 181"/>
+            </g>
+            <text x="125" y="178" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#3a2c14" font-weight="600">SOIL / MEDIA</text>
+            <text x="125" y="193" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#5a4422">Ksat lives here</text>
+          </g>
+          <!-- STORAGE -->
+          <g class="lyr-hit" data-layer="storage">
+            <rect x="30" y="232" width="190" height="58" rx="3" fill="#7d6748" stroke="#574330" stroke-width="1.2"/>
+            <g fill="#574330" opacity=".55"><circle cx="50" cy="248" r="3.6"/><circle cx="78" cy="262" r="4"/><circle cx="108" cy="250" r="3.2"/><circle cx="140" cy="266" r="3.8"/><circle cx="172" cy="250" r="3.4"/><circle cx="198" cy="264" r="3.6"/><circle cx="64" cy="278" r="3"/><circle cx="124" cy="280" r="3.4"/><circle cx="186" cy="278" r="3"/></g>
+            <text x="125" y="270" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#2a2014" font-weight="600">STORAGE</text>
+          </g>
+          <!-- UNDERDRAIN -->
+          <g class="lyr-hit" data-layer="drain">
+            <rect x="30" y="294" width="190" height="22" rx="3" fill="#574330" stroke="#3a2c1d" stroke-width="1.2"/>
+            <circle cx="216" cy="305" r="6" fill="#101a22"/><circle cx="216" cy="305" r="2.4" fill="#cfe7ea"/>
+            <text x="115" y="309" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#e9ddc9" font-weight="600">UNDERDRAIN</text>
+          </g>
+        </svg>
+        <p class="note" style="text-align:center">Lined mesocosm → all outflow leaves through the underdrain. In SWMM/ICM terms, that means storage <span class="kbd">Seepage = 0</span>.</p>
+      </div>
+
+      <!-- detail -->
+      <div id="layerDetail"></div>
+    </div>
+
+    <div class="card reveal" style="margin-top:18px; background:var(--surface-2)">
+      <div class="eyebrow">Why this mapping is exact</div>
+      <p class="muted" style="margin:6px 0 0; font-size:.94rem">SWMM5's LID engine and ICM's SuDS controls share a lineage — both model a bioretention cell as a stack of moisture-accounting layers. The EPA SWMM5 <span class="kbd">[LID_CONTROLS]</span> Bio-Retention Cell uses four layer lines (<span class="kbd">SURFACE</span>, <span class="kbd">SOIL</span>, <span class="kbd">STORAGE</span>, <span class="kbd">DRAIN</span>); ICM's SuDS bioretention structure exposes the same four conceptual layers in its dialog. That's why the same physical core sample drives both, and why the paper's results land directly on parameters you already edit.</p>
+    </div>
+  </section>
+</div>
+
+<!-- ================= TAB 3: SWMM5 MAPPING ================= -->
+<div class="panel" id="panel-swmm5" role="tabpanel" aria-labelledby="tab-swmm5" tabindex="-1">
+  <section class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">SWMM5 · [LID_CONTROLS] Bio-Retention Cell</div>
+      <h2>The clogging factor only points one way.</h2>
+      <p>SWMM5 has exactly one parameter that changes LID performance over the run: the storage layer's <b>clogging factor</b>. It can drive infiltration <i>down</i> as treated volume accumulates. There is no companion knob to drive it <i>up</i>. This paper is four years of "up."</p>
+    </div>
+
+    <div class="grid g2">
+      <div class="card reveal">
+        <div class="eyebrow">Interactive · clogging clock vs. observed maturation</div>
+        <h3 style="margin:6px 0 4px">Two curves, opposite directions</h3>
+        <p class="muted" style="font-size:.9rem; margin:0 0 12px">The orange curve is what SWMM5's clogging factor does to bottom seepage. The green curve is the surface infiltration the paper actually measured. SWMM5 can render the orange; it has no parameter for the green.</p>
+        <div class="chart-box" id="clogChart"></div>
+        <div class="ctrl" style="margin-top:14px">
+          <div class="row"><label>Storage clogging factor <span class="faint">(Par4)</span></label><span class="val" id="clogVal">100</span></div>
+          <input type="range" id="clogSlide" min="0" max="400" step="10" value="100" data-gif="Clogging factor">
+        </div>
+        <p class="note"><b>Clogging factor</b> = number of storage void-volumes of captured runoff needed to clog the bottom completely. SWMM linearly reduces seepage from full to zero across that volume. Set it to <span class="kbd">0</span> to disable — which is what this paper argues for under coarse-sediment, well-vegetated conditions.</p>
+      </div>
+
+      <div class="grid" style="align-content:start; gap:14px">
+        <div class="call alert"><span class="lab">The gap, precisely</span>The mesocosms were <b>lined with underdrains</b>, so the measured "infiltration" is the <b>surface → soil percolation</b>, governed in SWMM by the <b>SOIL layer Ksat</b>. SWMM holds Ksat constant for the whole run. The one time-varying knob (clogging) acts on the <i>storage</i> bottom seepage — which in a lined cell is already zero. So SWMM5 literally cannot reproduce the headline result.</div>
+        <div class="call"><span class="lab">Conductivity slope ≠ aging</span>The SOIL <b>conductivity slope</b> (Par6) bends Ksat with <i>moisture deficit</i>, not with <i>time</i>. It's a wetting-front behavior, not a maturation term. Don't mistake it for the trajectory in this paper.</div>
+        <div class="call grow"><span class="lab">Practical move today</span>Stop pre-loading a clogging factor "to be safe." For systems matching this regime, that bakes in a decline the field doesn't show. Calibrate Ksat to the media, set clogging to 0, and if you must age the cell, do it with scenarios (next tab) — not the clogging factor.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="section-head" style="margin-bottom:14px">
+      <div class="eyebrow">Live .inp generator</div>
+      <h2>Build a paper-calibrated BC block.</h2>
+      <p>Pick the media and vegetation from the study; the generator writes the four <span class="kbd">[LID_CONTROLS]</span> layer lines with field-rate Ksat from the paper. Copy or download, drop into your model.</p>
+    </div>
+
+    <div class="grid g-1-2">
+      <div class="card reveal" style="align-content:start">
+        <div class="ctrl">
+          <label>Media</label>
+          <div class="seg water" id="genMedia" style="margin-top:8px; width:100%">
+            <button data-v="coc70">CoC 70</button>
+            <button data-v="coc40">CoC 40</button>
+            <button class="on" data-v="cl">CL + wood chips</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <label>Vegetation</label>
+          <div class="seg" id="genVeg" style="margin-top:8px; width:100%">
+            <button class="on" data-v="herb">Herbaceous</button>
+            <button data-v="woody">Woody</button>
+            <button data-v="turf">Turfgrass</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <label>Ksat source</label>
+          <div class="seg" id="genKsat" style="margin-top:8px; width:100%">
+            <button class="on" data-v="field">Field-observed mean</button>
+            <button data-v="design">Design target</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <label>Units</label>
+          <div class="seg" id="genUnits" style="margin-top:8px; width:100%">
+            <button class="on" data-v="si">SI (mm)</button>
+            <button data-v="us">US (in)</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <div class="row"><label>Clogging factor</label><span class="val" id="genClogVal">0</span></div>
+          <input type="range" id="genClog" min="0" max="200" step="5" value="0">
+          <p class="note" style="margin-top:6px">Default 0 — the paper's recommendation for this regime. Raise it only if you have fine sediment and weak vegetation.</p>
+        </div>
+        <div id="genReadout" style="margin-top:6px"></div>
+      </div>
+
+      <div class="card reveal" style="padding:0; overflow:hidden">
+        <div style="padding:14px 18px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center">
+          <span class="eyebrow">[LID_CONTROLS] output</span>
+          <div style="display:flex; gap:8px">
+            <button class="btn sm" id="genCopy" data-gif="Copy .inp">Copy</button>
+            <button class="btn sm water" id="genDownload" data-gif="Download .inp">Download .inp snippet</button>
+          </div>
+        </div>
+        <div class="code" id="genCode" style="border-radius:0; min-height:340px"></div>
+      </div>
+    </div>
+
+    <div class="card reveal" style="margin-top:18px">
+      <div class="eyebrow">Compare media — side by side</div>
+      <h3 style="margin:6px 0 4px">Two recipes, parameter by parameter</h3>
+      <p class="muted" style="font-size:.9rem; margin:0 0 14px">Media is the study's dominant factor (η²=0.89). Put any two beside each other to see exactly which <span class="kbd">SOIL</span>-line fields move, and by how much. Honors the unit toggle above.</p>
+      <div class="grid g2" style="gap:14px">
+        <div class="ctrl">
+          <label>Media A</label>
+          <div class="seg water" id="cmpA" style="margin-top:8px; width:100%">
+            <button class="on" data-v="coc70">CoC 70</button>
+            <button data-v="coc40">CoC 40</button>
+            <button data-v="cl">CL</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <label>Media B</label>
+          <div class="seg water" id="cmpB" style="margin-top:8px; width:100%">
+            <button data-v="coc70">CoC 70</button>
+            <button data-v="coc40">CoC 40</button>
+            <button class="on" data-v="cl">CL</button>
+          </div>
+        </div>
+      </div>
+      <div id="cmpOut" style="margin-top:14px"></div>
+    </div>
+
+    <div class="card reveal" style="margin-top:18px">
+      <div class="eyebrow">Field layout reference</div>
+      <h3 style="margin:6px 0 12px">Where each BC layer field comes from</h3>
+      <table class="tbl">
+        <thead><tr><th>Layer line</th><th>Fields (in order)</th><th>The paper's lever</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">SURFACE</td><td class="mono">StorHt · VegFrac · Rough · Slope · Xslope</td><td class="muted">Vegetation type sets VegFrac; berm = the 300 mm ponding zone.</td></tr>
+          <tr><td class="mono">SOIL</td><td class="mono">Thick · Por · FC · WP · <span class="pos">Ksat</span> · Kcoeff · Suct</td><td class="muted"><b>Media type lives here.</b> The dominant η²=0.89 factor.</td></tr>
+          <tr><td class="mono">STORAGE</td><td class="mono">Height · Vratio · Seepage · <span class="neg">Clog</span></td><td class="muted">Lined cell → Seepage 0. Clog is the only time-varying knob.</td></tr>
+          <tr><td class="mono">DRAIN</td><td class="mono">Coeff · Expon · Offset · Delay · Hopen · Hclose</td><td class="muted">The underdrain that carried all outflow in the study.</td></tr>
+        </tbody>
+      </table>
+      <p class="note">IP ratio isn't a BC layer field — it's catchment sizing. In SWMM it maps to <span class="kbd">[LID_USAGE]</span> <span class="kbd">FromImperv</span> (the % of upstream impervious runoff sent to the cell) and the LID area/width.</p>
+    </div>
+
+    <div class="card reveal" style="margin-top:18px">
+      <div class="eyebrow">Reverse — read your own [LID_CONTROLS]</div>
+      <h3 style="margin:6px 0 4px">Paste a BC block; see what it's really doing</h3>
+      <p class="muted" style="font-size:.9rem; margin:0 0 12px">Drop in the layer lines from any Bio-Retention Cell already in your model. This reads each field back to plain English, finds the nearest media in the study, and flags whether the cell is set up to decline, hold steady, or — impossibly, today — climb.</p>
+      <div class="row" style="gap:8px; margin-bottom:8px; align-items:center">
+        <label style="margin-right:auto">Units of the pasted block</label>
+        <div class="seg" id="mapUnits"><button class="on" data-v="si">mm</button><button data-v="us">in</button></div>
+        <button class="btn ghost sm" id="mapSample" data-gif="Load sample block">Load sample</button>
+        <button class="btn sm water" id="mapBtn" data-gif="Map the pasted block">Map it</button>
+      </div>
+      <textarea id="mapIn" class="inpbox" spellcheck="false" placeholder="[LID_CONTROLS]
+;;Name      Type/Layer  Par1  Par2  Par3  Par4  Par5  Par6  Par7
+MyCell  BC
+MyCell  SURFACE   300  0.20  0.30  1.0  0
+MyCell  SOIL      600  0.50  0.20  0.10  450  40  100
+MyCell  STORAGE   300  0.75  0  25
+MyCell  DRAIN     2.0  0.5  0  0  0  0"></textarea>
+      <div id="mapOut" style="margin-top:14px"></div>
+    </div>
+  </section>
+</div>
+
+<!-- ================= TAB 4: ICM INFOWORKS ================= -->
+<div class="panel" id="panel-icm" role="tabpanel" aria-labelledby="tab-icm" tabindex="-1">
+  <section class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">InfoWorks ICM · SuDS controls</div>
+      <h2>ICM can fake the trajectory — with scenarios.</h2>
+      <p>ICM shares SWMM's layered SuDS model, so it inherits the same blind spot: no maturation term. But ICM has two things standalone SWMM5 doesn't — delta-based scenarios and a Ruby engine — and together they let you stage the paper's "Year 1 vs Year 4" without copying the model.</p>
+    </div>
+
+    <div class="grid g2">
+      <div class="card reveal">
+        <div class="eyebrow">The layer correspondence</div>
+        <h3 style="margin:6px 0 12px">SWMM5 BC ↔ ICM SuDS bioretention</h3>
+        <table class="tbl">
+          <thead><tr><th>SWMM5 BC</th><th>ICM SuDS (conceptual)</th><th>Carries</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">SURFACE</td><td>Surface layer</td><td class="muted">Berm / depression storage, vegetation, roughness</td></tr>
+            <tr><td class="mono">SOIL</td><td>Soil / substrate layer</td><td class="muted"><span class="pos">Saturated conductivity</span>, porosity, FC, WP, suction, decay</td></tr>
+            <tr><td class="mono">STORAGE</td><td>Storage / sub-base layer</td><td class="muted">Depth, void ratio, infiltration (exfiltration), clogging</td></tr>
+            <tr><td class="mono">DRAIN</td><td>Underdrain</td><td class="muted">Coefficient, exponent, offset</td></tr>
+          </tbody>
+        </table>
+        <p class="note">Conceptual mapping — confirm exact field labels in your ICM build. The structure is identical because both engines descend from the same EPA SuDS formulation.</p>
+        <div class="call amber" style="margin-top:14px"><span class="lab">Same limitation</span>ICM's SuDS conductivity is also a fixed input per run. There is no built-in "infiltration improves with maturation" process — so you stage it explicitly.</div>
+      </div>
+
+      <div class="card reveal" style="align-content:start">
+        <div class="eyebrow">Workflow A · scenario staging</div>
+        <h3 style="margin:6px 0 10px">Year 1 vs Year 4 as two scenarios</h3>
+        <p class="muted" style="font-size:.93rem">ICM scenarios store only the <b>differences</b> from Base. So:</p>
+        <ul class="tight muted" style="font-size:.93rem">
+          <li><b>Base</b> — as-built SuDS, soil conductivity at design / early-life value.</li>
+          <li><b>Scenario "Mature_Yr4"</b> — override only each SuDS structure's saturated conductivity to the field value the paper observed (e.g. CL ≈ 1086 mm/h), leave everything else inherited.</li>
+          <li>Run both against the same rainfall; diff the surface flooding and underdrain hydrographs.</li>
+        </ul>
+        <div class="call grow" style="margin-top:12px"><span class="lab">Why it's honest</span>You're not claiming the engine ages the cell — you're bracketing performance between the paper's start and end states, which is exactly what a designer needs for a sensitivity envelope.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="grid g-1-2">
+      <div class="card reveal" style="align-content:start">
+        <div class="eyebrow">Workflow B · Ruby sweep</div>
+        <h3 style="margin:6px 0 10px">Push the trajectory across every SuDS structure</h3>
+        <p class="muted" style="font-size:.93rem">Rather than edit cells by hand, drive the maturation curve from the LMM slope (+6.814 mm/h per event ≈ per loading) across the whole SuDS network, then export a run per year. The snippet is a pattern, not a drop-in — wire it to your object model and field names.</p>
+        <div class="pill-row">
+          <span class="pill t">ICM Exchange</span><span class="pill t">on_network</span><span class="pill g">scenario-aware</span><span class="pill">non-destructive via commit</span>
+        </div>
+      </div>
+      <div class="card reveal" style="padding:0; overflow:hidden">
+        <div style="padding:14px 18px; border-bottom:1px solid var(--line)"><span class="eyebrow">Ruby — SuDS conductivity sweep (pattern)</span></div>
+        <div class="code" style="border-radius:0"><button class="copy" data-copy="rubySweep">Copy</button><pre id="rubySweep" style="margin:0; white-space:pre-wrap"><span class="c"># ICM Exchange — stage the paper's maturation across SuDS bioretention cells.</span>
+<span class="c"># Maps Skorobogatov et al. (2026): media-driven Ksat, +6.814 mm/h per event (LMM).</span>
+
+<span class="k">net</span> = WSApplication.current_network
+
+<span class="c"># Field-observed means from the paper, by media tag (mm/h)</span>
+KSAT = { <span class="s">'CoC70'</span> => <span class="n">287.0</span>, <span class="s">'CoC40'</span> => <span class="n">479.0</span>, <span class="s">'CL'</span> => <span class="v">1086.0</span> }
+SLOPE = <span class="n">6.814</span>   <span class="c"># mm/h gain per loading event (LMM time estimate)</span>
+<span class="c"># NOTE: 6.814 is the POOLED time effect across all 24 cells, not a per-media rate.</span>
+<span class="c"># The paper did not report separate slopes by media, so applying one slope to every</span>
+<span class="c"># tag is a deliberate first-order bracket — calibrate per media against your own data.</span>
+year  = <span class="n">4</span>        <span class="c"># scenario year to stage</span>
+ev_yr = <span class="n">18</span>       <span class="c"># ~events per growing season</span>
+
+net.transaction_begin
+net.row_objects(<span class="s">'hw_suds_control'</span>).each do |s|     <span class="c"># confirm table/field names in your build</span>
+  media = s.user_text_1                          <span class="c"># e.g. media tag stored on the structure</span>
+  base  = KSAT[media] || s.soil_saturated_conductivity
+  <span class="c"># clamp the maturation so it brackets, not extrapolates wildly</span>
+  matured = base + SLOPE * ev_yr * (year - <span class="n">1</span>)
+  s.soil_saturated_conductivity = matured
+  s.write
+end
+net.transaction_commit
+
+<span class="c"># Now run the scenario; compare flooding + underdrain Q vs the Base (Year 1) run.</span></pre></div>
+      </div>
+    </div>
+
+    <div class="card reveal" style="margin-top:18px; background:var(--surface-2)">
+      <div class="eyebrow">Where ICM earns its keep on this paper</div>
+      <div class="grid g3" style="margin-top:10px">
+        <div><h4 style="font-size:1rem">Continuous + cold climate</h4><p class="muted" style="font-size:.9rem; margin:6px 0 0">Run multi-year continuous simulation to expose the freeze-thaw seasonality the authors suspect — something a single design event can't show.</p></div>
+        <div><h4 style="font-size:1rem">1D–2D coupling</h4><p class="muted" style="font-size:.9rem; margin:6px 0 0">See what rising infiltration does to surface ponding and the 2D flood extent, not just the underdrain hydrograph.</p></div>
+        <div><h4 style="font-size:1rem">Sediment + IP sizing</h4><p class="muted" style="font-size:.9rem; margin:6px 0 0">Test the IP 15 vs 30 sizing trade-off with pretreatment, the way the paper recommends for high-loading designs.</p></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ================= TAB 5: SWMM6 IDEAS ================= -->
+<div class="panel" id="panel-swmm6" role="tabpanel" aria-labelledby="tab-swmm6" tabindex="-1">
+  <section class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">SWMM6 / SWMM5+ · process modules a modern engine could add</div>
+      <h2>What if the cell could mature in the engine?</h2>
+      <p>This paper is, in effect, a feature request. Every result that today forces a scenario hack or a Ruby sweep could become a first-class process in a modular SWMM6 (HydroCouple lineage) or SWMM5+. Here's the brief.</p>
+    </div>
+
+    <div class="grid g2" id="swmm6cards"></div>
+
+    <div class="card reveal" style="margin-top:18px">
+      <div class="eyebrow">A concrete proposal · time-aware SOIL line</div>
+      <h3 style="margin:6px 0 10px">Add a maturation companion to the clogging factor</h3>
+      <p class="muted" style="font-size:.93rem; margin-bottom:12px">Today the STORAGE clogging factor is volume-driven and one-directional. A SWMM6 SOIL line could carry a structure-development rate that lets Ksat rise toward a mature ceiling — the trajectory this study measured — bounded so it never runs away.</p>
+      <div class="code"><button class="copy" data-copy="swmm6prop">Copy</button><pre id="swmm6prop" style="margin:0; white-space:pre-wrap"><span class="c">; ---- SWMM5 today: Ksat is fixed; clogging only subtracts (storage line) ----</span>
+<span class="k">BioCell</span>  SOIL     <span class="n">600</span>  <span class="n">0.55</span>  <span class="n">0.25</span>  <span class="n">0.12</span>  <span class="v">1086</span>  <span class="n">48</span>  <span class="n">200</span>
+<span class="k">BioCell</span>  STORAGE  <span class="n">300</span>  <span class="n">0.75</span>  <span class="n">0</span>     <span class="n">0</span>     <span class="c">; Seepage=0 (lined), Clog=0</span>
+
+<span class="c">; ---- SWMM6 idea: optional MATURATION line (per LID control) ----</span>
+<span class="c">;            Kmature  DevRate   Driver        Seasonal</span>
+<span class="k">BioCell</span>  MATURATION  <span class="v">1100</span>   <span class="n">6.814</span>   BIOLOGICAL   FREEZE_THAW
+<span class="c">; Kmature  : ceiling Ksat the mature cell approaches      (mm/h)</span>
+<span class="c">; DevRate  : structure-development gain per loading event (mm/h)  &lt;- LMM slope</span>
+<span class="c">; Driver   : VOLUME | BIOLOGICAL(CO2/root proxy) | NONE</span>
+<span class="c">; Seasonal : FREEZE_THAW pore-enhancement modifier (cold climate)</span></pre></div>
+      <p class="note">Illustrative syntax for discussion at the SWMM5+ TAC / EWRI committee — not a released feature.</p>
+    </div>
+
+    <div class="card reveal" style="margin-top:18px; background:var(--grow-soft); border-color:var(--grow)">
+      <div class="eyebrow" style="color:var(--grow-deep)">The authors basically asked for this</div>
+      <p style="margin:6px 0 0; font-size:.95rem">Their own future-work paragraph calls to <i>"pair temporally resolved respiration measurements with direct measurements of root metrics and structural indicators … and to integrate their dynamics into predictive models of bioretention system longevity."</i> That integration target is precisely a SWMM6 process module — a biologically-coupled structure-development term sitting alongside the existing moisture accounting.</p>
+    </div>
+  </section>
+</div>
+
+<!-- ================= TAB 6: PRACTICE ================= -->
+<div class="panel" id="panel-practice" role="tabpanel" aria-labelledby="tab-practice" tabindex="-1">
+  <section class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">For your next model</div>
+      <h2>What to actually change.</h2>
+      <p>Eight design-and-modeling takeaways, each tied to a result and to a parameter you control.</p>
+    </div>
+
+    <div class="grid g2">
+      <div class="card reveal">
+        <ol style="margin:0; padding-left:1.2rem; line-height:1.7">
+          <li><b>Calibrate Ksat first.</b> Media explained 89% of the variance. In SWMM/ICM it's the SOIL conductivity — the single most leveraged number.</li>
+          <li><b>Don't pre-impose clogging.</b> For coarse-sediment, well-vegetated cells, a default clogging factor invents a decline the field doesn't show. Set it to 0 and justify any nonzero value.</li>
+          <li><b>Texture % is not destiny.</b> CL had the most fines yet the highest infiltration — wood chips carried it. Don't size Ksat off sand fraction alone.</li>
+          <li><b>Pick vigorous herbaceous, avoid turf.</b> Turfgrass was the only configuration that trended down. Reflect it in VegFrac and in your vegetation spec.</li>
+        </ol>
+      </div>
+      <div class="card reveal">
+        <ol start="5" style="margin:0; padding-left:1.2rem; line-height:1.7">
+          <li><b>Treat IP as sizing, not seepage.</b> Loading wasn't significant here, but its effect grew over time. Map it to LID_USAGE / FromImperv, and watch it in long runs.</li>
+          <li><b>Pretreat high-IP designs.</b> If you push IP to 30 to shrink footprint, add sedimentation upstream — the authors' explicit recommendation.</li>
+          <li><b>Respect the sediment caveat.</b> These results are for coarse inflow (D50 0.693 mm &gt; media pores). Finer sediment can still clog — don't generalize the "no decline" finding blindly.</li>
+          <li><b>Age cells with scenarios, not faith.</b> Until an engine matures the cell for you, bracket Year 1 vs Year 4 explicitly (ICM scenarios / SWMM .inp variants).</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="grid g-1-2">
+      <div class="card reveal" style="align-content:start">
+        <div class="eyebrow">Interactive · clogging-factor decision helper</div>
+        <h3 style="margin:6px 0 10px">Should you apply a clogging factor at all?</h3>
+        <p class="muted" style="font-size:.92rem">Set your system's conditions; get a defensible call grounded in the paper.</p>
+        <div class="ctrl" style="margin-top:14px">
+          <label>Inflow sediment</label>
+          <div class="seg" data-dh="sed" style="margin-top:8px; width:100%"><button class="on" data-v="coarse">Coarse (≈ study)</button><button data-v="mixed">Mixed</button><button data-v="fine">Fine / silty</button></div>
+        </div>
+        <div class="ctrl">
+          <label>Vegetation plan</label>
+          <div class="seg" data-dh="veg" style="margin-top:8px; width:100%"><button class="on" data-v="herb">Vigorous herbaceous</button><button data-v="woody">Woody</button><button data-v="turf">Turfgrass</button></div>
+        </div>
+        <div class="ctrl">
+          <label>IP ratio / loading</label>
+          <div class="seg" data-dh="ip" style="margin-top:8px; width:100%"><button class="on" data-v="low">Low (≤ 15)</button><button data-v="high">High (≥ 30)</button></div>
+        </div>
+        <div class="ctrl">
+          <label>Upstream pretreatment</label>
+          <div class="seg" data-dh="pre" style="margin-top:8px; width:100%"><button class="on" data-v="yes">Yes</button><button data-v="no">No</button></div>
+        </div>
+      </div>
+      <div class="card reveal" style="align-content:start">
+        <div class="dh-out" id="dhOut"></div>
+        <p class="note">A guide, not a guarantee. The paper's evidence is strongest for coarse-sediment, cold-climate, vegetated cells over four years — extrapolate with care.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="card reveal" style="background:var(--surface-2)">
+      <div class="eyebrow">Honest scope</div>
+      <h3 style="margin:6px 0 8px">What this app is, and isn't</h3>
+      <p class="muted" style="font-size:.93rem; margin:0">It's a modeler's reading of one strong field study — a bridge from its results to the parameters you edit in SWMM5, ICM, and a hypothetical SWMM6. Every number shown is the authors'; nothing here is re-simulated, and the .inp and Ruby outputs are starting points you must calibrate and validate against your own site. For the full method, statistics, and caveats, read the source: <a href="https://doi.org/10.1016/j.ecoleng.2026.108020" target="_blank" rel="noopener">Skorobogatov et&nbsp;al. (2026), Ecological Engineering 230, 108020</a>. Shared by <a href="https://www.linkedin.com/posts/kerr-wood-leidal-associates-ltd-_bioretention-system-infiltration-insights-activity-7470620516857352192-cSjQ" target="_blank" rel="noopener">Kerr Wood Leidal Associates on LinkedIn</a>.</p>
+    </div>
+  </section>
+</div>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>Built for SWMM5 / ICM modelers · a reading of Skorobogatov, He, Chu, Valeo &amp; van&nbsp;Duin (2026). · <a href="https://www.linkedin.com/posts/kerr-wood-leidal-associates-ltd-_bioretention-system-infiltration-insights-activity-7470620516857352192-cSjQ" target="_blank" rel="noopener" style="color:var(--water-deep)">KWL LinkedIn post ↗</a></div>
+    <div class="mono faint" title="v1.2 — two-column media diff + paste-your-own-[LID_CONTROLS] reader. v1.1 — shareable deep links, keyboard-accessible tabs, copy-with-fallback, print layout, count-up metrics, clearer LMM caveat.">Numbers belong to the authors · No re-simulation · v1.2</div>
+  </div>
+</footer>
+
+<!-- ============ FLOATING BUTTONS ============ -->
+<div class="float-btns">
+  <div id="gifStatus"></div>
+  <button class="fbtn" id="gifBtn" title="Record a captioned walkthrough GIF">🎬 Make a GIF</button>
+  <button class="fbtn round" id="helpBtn" title="How to use">?</button>
+</div>
+
+<!-- ============ WELCOME MODAL ============ -->
+<div class="overlay" id="welcome">
+  <div class="modal">
+    <button class="x" id="welcomeX" aria-label="Close">✕</button>
+    <div class="eyebrow">Welcome</div>
+    <h2 style="margin:6px 0 4px">Bioretention infiltration, for modelers</h2>
+    <p class="muted" style="margin:0 0 14px">A four-year field study found bioretention infiltration <b>rising</b>, not declining — and this turns that finding into the SWMM5, ICM, and SWMM6 parameters you actually edit.</p>
+    <div style="background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:14px; font-size:.92rem">
+      <b>What you can do here:</b>
+      <ul class="tight muted" style="margin-top:8px">
+        <li><b>See the finding</b> — the temporal trend and which design knobs drive it.</li>
+        <li><b>Click the soil column</b> — each layer maps to real SWMM5 / ICM fields.</li>
+        <li><b>Generate a calibrated BC block</b> — copy/export a real [LID_CONTROLS] snippet.</li>
+        <li><b>Stage maturation in ICM</b> — scenario + Ruby patterns for Year 1 vs Year 4.</li>
+        <li><b>Read the SWMM6 brief</b> — the process module this paper is asking for.</li>
+      </ul>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:16px">
+      <button class="btn" id="welcomeTour" style="flex:1; justify-content:center">Take the 60-second tour</button>
+      <button class="btn ghost" id="welcomeGo" style="flex:1; justify-content:center">Just let me explore</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TOUR ============ -->
+<div class="tour-overlay" id="tourOverlay"></div>
+<div class="spotlight" id="spotlight"></div>
+<div class="tour-tip" id="tourTip">
+  <div class="eyebrow"><span id="tourStep">1</span> / <span id="tourTotal">6</span></div>
+  <h4 id="tourTitle" style="margin:6px 0 6px; font-size:1.15rem"></h4>
+  <p id="tourBody" class="muted" style="font-size:.9rem; margin:0 0 14px"></p>
+  <div style="display:flex; justify-content:space-between; align-items:center">
+    <button id="tourSkip" style="border:0; background:none; color:var(--ink-faint); cursor:pointer; font-size:.85rem">Skip</button>
+    <div style="display:flex; gap:8px">
+      <button class="btn ghost sm" id="tourPrev">Back</button>
+      <button class="btn sm" id="tourNext">Next</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   PAPER DATA — every value sourced from Skorobogatov et al. (2026)
+   ========================================================================= */
+const MEDIA = {
+  coc70:{label:'CoC 70', mean:287, design:70,  por:0.45, fc:0.10, wp:0.05, kco:30, suct:50,  color:'#d7c48f',
+          texture:'74.6% sand · 19.3% silt · 6.1% clay · 3.5% OM', note:'Sand-based, lowest organic — most clog-prone in the study.'},
+  coc40:{label:'CoC 40', mean:479, design:40,  por:0.48, fc:0.12, wp:0.06, kco:40, suct:110, color:'#b08a47',
+          texture:'73.7% sand · 22.6% silt · 3.7% clay · 16.4% OM', note:'Sand-based, high organic.'},
+  cl:   {label:'CL',     mean:1086,design:250, por:0.55, fc:0.25, wp:0.12, kco:48, suct:200, color:'#5f4026',
+          texture:'41.6% sand · 44.3% silt · 14.1% clay · ~11% OM', note:'Clay-loam + 40% wood chips — highest infiltration despite most fines.'}
+};
+const VEG = {
+  herb: {label:'Herbaceous', mean:886, vfrac:0.20, rough:0.30, note:'Thick-rooted Carex atheroides — greatest gains.'},
+  woody:{label:'Woody',      mean:529, vfrac:0.10, rough:0.20, note:'Tallest, but slow to establish subsurface structure.'},
+  turf: {label:'Turfgrass',  mean:509, vfrac:0.10, rough:0.24, note:'Shallow roots — only configuration that trended down.'}
+};
+const EFFECTS = [
+  {k:'Media',          v:0.89, type:'main', sig:'66/72'},
+  {k:'Vegetation',     v:0.59, type:'main', sig:'36/72'},
+  {k:'Media × Veg',    v:0.48, type:'int',  sig:'—'},
+  {k:'Media × Veg × IP',v:0.45,type:'int',  sig:'—'},
+  {k:'Media × IP',     v:0.40, type:'int',  sig:'19/72'},
+  {k:'IP ratio',       v:0.33, type:'main', sig:'21/72'},
+  {k:'Veg × IP',       v:0.31, type:'int',  sig:'—'}
+];
+const FIRST=286, LAST=875, NEVENTS=72, LMM_SLOPE=6.814;
+
+/* =========================================================================
+   TAB SWITCHING
+   ========================================================================= */
+const PRM = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const tabs = Array.from(document.querySelectorAll('.tab'));
+const panels = {finding:'panel-finding', column:'panel-column', swmm5:'panel-swmm5', icm:'panel-icm', swmm6:'panel-swmm6', practice:'panel-practice'};
+function activeTab(){ const a=document.querySelector('.tab.active'); return a?a.dataset.tab:'finding'; }
+function go(tab, opts={}){
+  if(!panels[tab]) tab='finding';
+  tabs.forEach(t=>{
+    const on = t.dataset.tab===tab;
+    t.classList.toggle('active', on);
+    t.setAttribute('aria-selected', on?'true':'false');
+    t.tabIndex = on ? 0 : -1;
+  });
+  Object.entries(panels).forEach(([k,id])=>document.getElementById(id).classList.toggle('active', k===tab));
+  if(opts.focus){ const at=tabs.find(t=>t.dataset.tab===tab); at && at.focus(); }
+  if(opts.scroll!==false) window.scrollTo({top:0, behavior: PRM?'auto':'smooth'});
+  setTimeout(revealScan, 60);
+  syncURL(opts.push!==false);
+}
+tabs.forEach(t=>t.addEventListener('click', ()=>go(t.dataset.tab)));
+/* WAI-ARIA tabs keyboard pattern: arrows/Home/End move between tabs */
+document.getElementById('tabs').addEventListener('keydown', e=>{
+  const i = tabs.findIndex(t=>t.dataset.tab===activeTab());
+  let n=null;
+  if(e.key==='ArrowRight'||e.key==='ArrowDown') n=(i+1)%tabs.length;
+  else if(e.key==='ArrowLeft'||e.key==='ArrowUp') n=(i-1+tabs.length)%tabs.length;
+  else if(e.key==='Home') n=0;
+  else if(e.key==='End') n=tabs.length-1;
+  if(n!==null){ e.preventDefault(); go(tabs[n].dataset.tab, {focus:true, scroll:false}); }
+});
+document.getElementById('cta-column').onclick = ()=>go('column');
+document.getElementById('cta-swmm5').onclick = ()=>go('swmm5');
+
+/* =========================================================================
+   URL STATE — shareable deep links: ?tab=swmm5&media=cl&veg=herb&ksat=field&units=si&clog=0
+   ========================================================================= */
+function syncURL(push){
+  try{
+    const p=new URLSearchParams();
+    p.set('tab', activeTab());
+    p.set('media', gen.media); p.set('veg', gen.veg);
+    p.set('ksat', gen.ksat); p.set('units', gen.units); p.set('clog', gen.clog);
+    const url=location.pathname+'?'+p.toString()+location.hash;
+    push ? history.pushState({},'',url) : history.replaceState({},'',url);
+  }catch(e){ /* sandboxed contexts may block history; the app still works */ }
+}
+function applyURLToGen(){
+  const p=new URLSearchParams(location.search);
+  if(MEDIA[p.get('media')]) gen.media=p.get('media');
+  if(VEG[p.get('veg')]) gen.veg=p.get('veg');
+  if(['field','design'].includes(p.get('ksat'))) gen.ksat=p.get('ksat');
+  if(['si','us'].includes(p.get('units'))) gen.units=p.get('units');
+  const c=parseInt(p.get('clog'),10); if(!isNaN(c)) gen.clog=Math.min(200,Math.max(0,Math.round(c/5)*5));
+  const t=p.get('tab');
+  return (t && panels[t]) ? t : null;
+}
+/* reflect the current `gen` object back into the segmented controls + slider */
+function syncGenUI(){
+  [['genMedia','media'],['genVeg','veg'],['genKsat','ksat'],['genUnits','units']].forEach(([id,key])=>{
+    document.querySelectorAll(`#${id} button`).forEach(b=>b.classList.toggle('on', b.dataset.v===gen[key]));
+  });
+  const sl=document.getElementById('genClog'); if(sl){ sl.value=gen.clog; document.getElementById('genClogVal').textContent=gen.clog; }
+  buildInp();
+}
+window.addEventListener('popstate', ()=>{ const t=applyURLToGen(); syncGenUI(); go(t||'finding', {push:false, scroll:false}); });
+
+/* =========================================================================
+   SVG CHART HELPERS
+   ========================================================================= */
+const NS='http://www.w3.org/2000/svg';
+function el(tag, attrs={}, txt){ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); if(txt!=null) e.textContent=txt; return e; }
+function svgFrame(w,h){ const s=el('svg',{viewBox:`0 0 ${w} ${h}`, width:'100%'}); return s; }
+
+/* ---- temporal chart ---- */
+let tempState = {coc70:false, coc40:false, cl:false};
+function drawTemporal(){
+  const box=document.getElementById('tempChart'); box.innerHTML='';
+  const W=560,H=300, mL=48,mR=14,mT=14,mB=34, pw=W-mL-mR, ph=H-mT-mB;
+  const maxY=1200;
+  const x=ev=>mL+(ev-1)/(NEVENTS-1)*pw;
+  const y=v=>mT+ph-(v/maxY)*ph;
+  const s=svgFrame(W,H);
+  // grid + y labels
+  for(let v=0; v<=1200; v+=200){
+    s.appendChild(el('line',{x1:mL,y1:y(v),x2:W-mR,y2:y(v),class:'grid-line'}));
+    s.appendChild(el('text',{x:mL-7,y:y(v)+3,'text-anchor':'end',class:''},v)).setAttribute('font-size','10');
+  }
+  s.querySelectorAll('text').forEach(t=>t.setAttribute('font-family','IBM Plex Mono, monospace'));
+  s.querySelectorAll('text').forEach(t=>t.setAttribute('fill','#6a7884'));
+  // x labels (years)
+  const yrs=[['2017',6],['2018',24],['2019',46],['2020',64]];
+  yrs.forEach(([lab,ev])=>{ const t=el('text',{x:x(ev),y:H-12,'text-anchor':'middle'},lab); t.setAttribute('font-family','IBM Plex Mono, monospace'); t.setAttribute('font-size','10'); t.setAttribute('fill','#6a7884'); s.appendChild(t); });
+  s.appendChild(el('text',{x:mL,y:H-12,'text-anchor':'start'},'event #')).setAttribute('font-size','9');
+  // media mean reference lines
+  ['coc70','coc40','cl'].forEach(m=>{
+    if(!tempState[m]) return;
+    const v=MEDIA[m].mean;
+    s.appendChild(el('line',{x1:mL,y1:y(v),x2:W-mR,y2:y(v),stroke:MEDIA[m].color,'stroke-width':2,'stroke-dasharray':'5 4'}));
+    const t=el('text',{x:W-mR-4,y:y(v)-5,'text-anchor':'end'},`${MEDIA[m].label} mean ${v}`); t.setAttribute('font-family','IBM Plex Mono, monospace'); t.setAttribute('font-size','9.5'); t.setAttribute('fill',MEDIA[m].color); t.setAttribute('font-weight','600'); s.appendChild(t);
+  });
+  // aggregate mean trend line (286 -> 875), animated draw
+  const x1=x(1), y1=y(FIRST), x2=x(NEVENTS), y2=y(LAST);
+  // faint band
+  const band=el('path',{d:`M${x1},${y1-30} L${x2},${y2-90} L${x2},${y2+90} L${x1},${y1+30} Z`, fill:'#2f8f4e', opacity:'.07'}); s.appendChild(band);
+  const line=el('line',{x1:x1,y1:y1,x2:x2,y2:y2, stroke:'#216b3a','stroke-width':3,'stroke-linecap':'round'}); s.appendChild(line);
+  // endpoints
+  [[x1,y1,FIRST,'event 1'],[x2,y2,LAST,'event 72']].forEach(([cx,cy,val,lab],i)=>{
+    s.appendChild(el('circle',{cx,cy,r:5,fill:'#216b3a',stroke:'#fff','stroke-width':2}));
+    const t=el('text',{x:cx+(i?-6:6),y:cy+(i?-12:18),'text-anchor':i?'end':'start'},`${val} mm/h`); t.setAttribute('font-family','IBM Plex Mono, monospace'); t.setAttribute('font-size','11'); t.setAttribute('fill','#216b3a'); t.setAttribute('font-weight','600'); s.appendChild(t);
+  });
+  box.appendChild(s);
+}
+function buildTempToggles(){
+  const box=document.getElementById('tempToggles');
+  ['coc70','coc40','cl'].forEach(m=>{
+    const b=document.createElement('button'); b.className='chip off'; b.dataset.gif='Overlay '+MEDIA[m].label;
+    b.innerHTML=`<i class="sw" style="background:${MEDIA[m].color}"></i>${MEDIA[m].label} mean`;
+    b.onclick=()=>{ tempState[m]=!tempState[m]; b.classList.toggle('off',!tempState[m]); b.classList.toggle('on',tempState[m]); drawTemporal(); };
+    box.appendChild(b);
+  });
+}
+
+/* ---- effect-size chart ---- */
+function drawEffects(){
+  const box=document.getElementById('effectChart'); box.innerHTML='';
+  const rows=EFFECTS, W=560, rowH=40, H=rows.length*rowH+30, mL=130, mR=44, bw=W-mL-mR;
+  const s=svgFrame(W,H);
+  // small/med/large markers
+  [[0.2,'small'],[0.5,'medium'],[0.8,'large']].forEach(([v,lab])=>{
+    const xx=mL+v*bw;
+    s.appendChild(el('line',{x1:xx,y1:6,x2:xx,y2:H-22,stroke:'#d7dbd2','stroke-dasharray':'3 4'}));
+    const t=el('text',{x:xx,y:H-8,'text-anchor':'middle'},lab); t.setAttribute('font-family','IBM Plex Mono, monospace'); t.setAttribute('font-size','9'); t.setAttribute('fill','#9aa6b0'); s.appendChild(t);
+  });
+  rows.forEach((r,i)=>{
+    const yy=12+i*rowH;
+    const lt=el('text',{x:mL-10,y:yy+15,'text-anchor':'end'},r.k); lt.setAttribute('font-family','IBM Plex Sans, sans-serif'); lt.setAttribute('font-size','12'); lt.setAttribute('fill','#15202b'); lt.setAttribute('font-weight', r.type==='main'?'600':'400'); lt.appendChild(el('title',{}, r.k)); s.appendChild(lt);
+    s.appendChild(el('rect',{x:mL,y:yy,width:bw,height:22,rx:5,fill:'#eef0ea'}));
+    const col = r.type==='main' ? '#0d7d8c' : '#2f8f4e';
+    const bar=el('rect',{x:mL,y:yy,width:r.v*bw,height:22,rx:5,fill:col, opacity:r.type==='main'?'1':'.78'});
+    bar.appendChild(el('title',{}, `${r.k}: η² = ${r.v.toFixed(2)} (${r.type==='main'?'main effect':'interaction'}${r.sig&&r.sig!=='—'?', significant in '+r.sig+' events':''})`));
+    s.appendChild(bar);
+    const vt=el('text',{x:mL+r.v*bw+7,y:yy+15},r.v.toFixed(2)); vt.setAttribute('font-family','IBM Plex Mono, monospace'); vt.setAttribute('font-size','11'); vt.setAttribute('fill',col); vt.setAttribute('font-weight','600'); s.appendChild(vt);
+  });
+  box.appendChild(s);
+}
+
+/* ---- clogging vs maturation chart ---- */
+function drawClog(){
+  const box=document.getElementById('clogChart'); box.innerHTML='';
+  const clog=+document.getElementById('clogSlide').value;
+  const W=540,H=260, mL=46,mR=16,mT=14,mB=30, pw=W-mL-mR, ph=H-mT-mB;
+  const maxX=72, maxY=120; // % of initial
+  const x=e=>mL+(e/maxX)*pw, y=p=>mT+ph-(p/maxY)*ph;
+  const s=svgFrame(W,H);
+  for(let p=0;p<=120;p+=20){ s.appendChild(el('line',{x1:mL,y1:y(p),x2:W-mR,y2:y(p),class:'grid-line'})); const t=el('text',{x:mL-6,y:y(p)+3,'text-anchor':'end'},p+'%'); t.setAttribute('font-family','IBM Plex Mono, monospace'); t.setAttribute('font-size','9'); t.setAttribute('fill','#6a7884'); s.appendChild(t); }
+  [0,24,48,72].forEach(e=>{ const t=el('text',{x:x(e),y:H-10,'text-anchor':'middle'},e); t.setAttribute('font-family','IBM Plex Mono, monospace'); t.setAttribute('font-size','9'); t.setAttribute('fill','#6a7884'); s.appendChild(t); });
+  const ax=el('text',{x:(mL+W-mR)/2,y:H-1,'text-anchor':'middle'},'loading event #'); ax.setAttribute('font-family','IBM Plex Mono, monospace'); ax.setAttribute('font-size','9'); ax.setAttribute('fill','#9aa6b0'); s.appendChild(ax);
+  // SWMM clogging curve: seepage drops to 0 at event = clog (scaled); if clog=0 -> flat 100
+  let dC='';
+  for(let e=0;e<=72;e++){
+    let p;
+    if(clog===0) p=100;
+    else { const eClog = clog/400*72; p = Math.max(0, 100*(1 - e/eClog)); }
+    dC += (e===0?'M':'L')+x(e)+','+y(p)+' ';
+  }
+  s.appendChild(el('path',{d:dC, fill:'none', stroke:'#bd3f12','stroke-width':2.6,'stroke-linecap':'round'}));
+  const lc=el('text',{x:x(70),y:y(clog===0?104:6)+(clog===0?0:0),'text-anchor':'end'},'SWMM5 clogging (seepage)'); lc.setAttribute('font-family','IBM Plex Mono, monospace'); lc.setAttribute('font-size','9.5'); lc.setAttribute('fill','#bd3f12'); lc.setAttribute('font-weight','600'); s.appendChild(lc);
+  // observed maturation curve: rises 100 -> ~205% (286->875). show capped at 120 for axis -> scale to fit: show as 100->~115 line trending up but annotate true value
+  let dM='';
+  for(let e=0;e<=72;e++){ const p = 100 + (15)*(e/72); dM += (e===0?'M':'L')+x(e)+','+y(p)+' '; }
+  s.appendChild(el('path',{d:dM, fill:'none', stroke:'#216b3a','stroke-width':2.8,'stroke-linecap':'round'}));
+  const lm=el('text',{x:x(2),y:y(118)},'Observed surface infiltration (paper) → +205%'); lm.setAttribute('font-family','IBM Plex Mono, monospace'); lm.setAttribute('font-size','9.5'); lm.setAttribute('fill','#216b3a'); lm.setAttribute('font-weight','600'); s.appendChild(lm);
+  box.appendChild(s);
+}
+
+/* =========================================================================
+   SOIL COLUMN → PARAMS (layer detail)
+   ========================================================================= */
+const LAYER = {
+  surface:{name:'Surface layer', color:'#0d7d8c', tag:'SURFACE',
+    paper:'The 300 mm ponding zone (freeboard) above the media, plus the plants. Vegetation type set here is the η²=0.59 vegetation effect — herbaceous beat woody and turf.',
+    swmm:'BC SURFACE line — berm/storage height, vegetation volume fraction, surface roughness (Manning n), slope.',
+    swmmline:'BioCell  SURFACE  300  0.20  0.30  1.0  0',
+    fields:'StorHt=300 mm (ponding) · VegFrac=0.20 (herbaceous) · Rough=0.30 · Slope=1% · Xslope=0',
+    icm:'ICM SuDS surface layer — depression/berm storage, vegetation, roughness.'},
+  soil:{name:'Soil / media layer', color:'#8a6a35', tag:'SOIL',
+    paper:'The 600 mm engineered media. This is where the headline lives: media type explained 89% of infiltration variance. CL (clay-loam + wood chips) ran at 1086 mm/h — the ponded drawdown the study measured is this layer\'s percolation capacity.',
+    swmm:'BC SOIL line — thickness, porosity, field capacity, wilting point, Ksat, conductivity slope, suction head. Ksat is the dominant calibration target.',
+    swmmline:'BioCell  SOIL  600  0.55  0.25  0.12  1086  48  200',
+    fields:'Thick=600 · Por=0.55 · FC=0.25 · WP=0.12 · Ksat=1086 mm/h (CL field) · Kcoeff=48 · Suct=200 mm',
+    icm:'ICM SuDS soil/substrate layer — saturated conductivity, porosity, FC, WP, suction, decay.'},
+  storage:{name:'Storage / gravel layer', color:'#574330', tag:'STORAGE',
+    paper:'The 300 mm drainage layer. Because the mesocosms were lined, no water exfiltrated to native soil — every drop left via the underdrain. So bottom seepage = 0.',
+    swmm:'BC STORAGE line — height, void ratio, seepage rate, clogging factor. The clogging factor is SWMM5\'s only time-varying LID knob — and it only reduces seepage.',
+    swmmline:'BioCell  STORAGE  300  0.75  0  0',
+    fields:'Height=300 · Vratio=0.75 · Seepage=0 (lined) · Clog=0 (paper: no decline observed)',
+    icm:'ICM SuDS storage/sub-base layer — depth, void ratio, exfiltration, clogging.'},
+  drain:{name:'Underdrain', color:'#3a2c1d', tag:'DRAIN',
+    paper:'The perforated pipe that carried all outflow during simulated events, and let the team read drawdown cleanly.',
+    swmm:'BC DRAIN line — drain coefficient, exponent, offset, delay, open/close heads. Q = Coeff × h^Expon above the offset.',
+    swmmline:'BioCell  DRAIN  2.0  0.5  0  0  0  0',
+    fields:'Coeff=2.0 · Expon=0.5 · Offset=0 · Delay=0 · Hopen=0 · Hclose=0',
+    icm:'ICM SuDS underdrain — coefficient, exponent, offset height.'}
+};
+const ICN_PAPER = '<svg class="icn" viewBox="0 0 20 20" fill="none"><rect x="3" y="2" width="14" height="16" rx="2" stroke="#216b3a" stroke-width="1.6"/><path d="M6 7h8M6 10h8M6 13h5" stroke="#216b3a" stroke-width="1.4" stroke-linecap="round"/></svg>';
+const ICN_SWMM  = '<svg class="icn" viewBox="0 0 20 20" fill="none"><path d="M3 14c2-4 3-8 5-8s2 6 4 6 3-5 5-7" stroke="#0d7d8c" stroke-width="1.6" stroke-linecap="round"/></svg>';
+const ICN_ICM   = '<svg class="icn" viewBox="0 0 20 20" fill="none"><rect x="2.5" y="4" width="15" height="12" rx="2" stroke="#bf8500" stroke-width="1.6"/><path d="M2.5 8h15M8 8v8" stroke="#bf8500" stroke-width="1.4"/></svg>';
+
+function showLayer(key){
+  const L=LAYER[key];
+  document.querySelectorAll('#bigCol .lyr-hit rect').forEach(r=>r.setAttribute('stroke-width','1.2'));
+  const sel=document.querySelector(`#bigCol .lyr-hit[data-layer="${key}"] rect`); if(sel){ sel.setAttribute('stroke-width','3.2'); sel.setAttribute('stroke','#15202b'); }
+  document.getElementById('layerDetail').innerHTML = `
+    <div class="layer-detail reveal in">
+      <div class="head" style="background:${L.color}">
+        <span class="tag">${L.tag}</span>
+        <h3 style="color:#fff; font-size:1.25rem">${L.name}</h3>
+      </div>
+      <div class="body">
+        <div class="ld-block">
+          <h4>${ICN_PAPER} In the paper</h4>
+          <p class="muted" style="font-size:.93rem; margin:0">${L.paper}</p>
+        </div>
+        <div class="ld-block">
+          <h4>${ICN_SWMM} SWMM5 — Bio-Retention Cell</h4>
+          <p class="muted" style="font-size:.92rem; margin:0">${L.swmm}</p>
+          <div class="paramline mono">${L.swmmline}</div>
+          <p class="note" style="margin-top:6px">${L.fields}</p>
+        </div>
+        <div class="ld-block">
+          <h4>${ICN_ICM} InfoWorks ICM — SuDS</h4>
+          <p class="muted" style="font-size:.92rem; margin:0">${L.icm}</p>
+        </div>
+      </div>
+    </div>`;
+}
+document.querySelectorAll('#bigCol .lyr-hit').forEach(g=>{
+  g.addEventListener('click', ()=>showLayer(g.dataset.layer));
+  g.setAttribute('tabindex','0'); g.setAttribute('role','button');
+  g.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); showLayer(g.dataset.layer);} });
+});
+showLayer('soil');
+
+/* =========================================================================
+   .INP GENERATOR
+   ========================================================================= */
+const gen = {media:'cl', veg:'herb', ksat:'field', units:'si', clog:0};
+function segBind(id, key, cb){
+  document.querySelectorAll(`#${id} button`).forEach(b=>{
+    b.onclick=()=>{ document.querySelectorAll(`#${id} button`).forEach(x=>x.classList.remove('on')); b.classList.add('on'); gen[key]=b.dataset.v; cb&&cb(); buildInp(); syncURL(false); };
+  });
+}
+function mm2in(v){ return v/25.4; }
+function buildInp(){
+  const m=MEDIA[gen.media], v=VEG[gen.veg];
+  const si = gen.units==='si';
+  const U = si ? {d:'mm', k:'mm/h'} : {d:'in', k:'in/h'};
+  const ksat = gen.ksat==='field' ? m.mean : m.design;
+  const dep = val => si ? val : +mm2in(val).toFixed(2);
+  const rate = val => si ? val : +mm2in(val).toFixed(2);
+  const name='BioCell';
+  // assemble layer lines
+  const surf = `${name}  SURFACE   ${dep(300)}  ${v.vfrac.toFixed(2)}  ${v.rough.toFixed(2)}  1.0  0`;
+  const soil = `${name}  SOIL      ${dep(600)}  ${m.por.toFixed(2)}  ${m.fc.toFixed(2)}  ${m.wp.toFixed(2)}  ${rate(ksat)}  ${m.kco}  ${dep(m.suct)}`;
+  const stor = `${name}  STORAGE   ${dep(300)}  0.75  0  ${gen.clog}`;
+  const drain= `${name}  DRAIN     2.0  0.5  0  0  0  0`;
+  const flow = si ? 'CMS' : 'CFS';
+  const html =
+`<span class="c">; ============================================================</span>
+<span class="c">;  Bio-Retention Cell — calibrated to Skorobogatov et al. (2026)</span>
+<span class="c">;  Media: ${m.label}   Vegetation: ${v.label}</span>
+<span class="c">;  Ksat source: ${gen.ksat==='field'?'field-observed 4-yr mean':'local design target'}</span>
+<span class="c">;  Units: ${si?'SI':'US'}  (FLOW_UNITS ${flow})   depths in ${U.d}, rates in ${U.k}</span>
+<span class="c">; ============================================================</span>
+
+<span class="k">[LID_CONTROLS]</span>
+<span class="c">;;Name      Type/Layer  Par1  Par2  Par3  Par4  Par5  Par6  Par7</span>
+${name}  <span class="k">BC</span>
+${hlLayer(surf)}
+${hlLayer(soil)}
+${hlLayer(stor)}
+${hlLayer(drain)}
+
+<span class="c">; ---- placement (example) — IP ratio enters here, not in the layers ----</span>
+<span class="k">[LID_USAGE]</span>
+<span class="c">;;Subcatch  LID      Number  Area   Width  InitSat  FromImperv  ToPerv</span>
+S1        ${name}   1     ${si?'11.7':'126'}    ${si?'1.8':'6'}    0      ${gen.media==='cl'?'93':'47'}      0
+<span class="c">; FromImperv ~ approximates the IP ratio (impervious area : cell footprint).</span>
+<span class="c">; IP 15 -> ~47%   |   IP 30 -> ~93%   (illustrative, size to your catchment)</span>`;
+  document.getElementById('genCode').innerHTML = html;
+  document.getElementById('genCode').dataset.plain = `[LID_CONTROLS]\n;;Name      Type/Layer  Par1  Par2  Par3  Par4  Par5  Par6  Par7\n${name}  BC\n${surf}\n${soil}\n${stor}\n${drain}`;
+  // readout
+  document.getElementById('genReadout').innerHTML =
+    `<div class="call"><span class="lab">This configuration</span>
+      <b>${m.label}</b> · ${m.texture}<br>
+      <span class="muted" style="font-size:.88rem">${m.note}</span><br>
+      <b>${v.label}</b> · VegFrac ${v.vfrac} — <span class="muted" style="font-size:.88rem">${v.note}</span><br>
+      <span class="mono" style="font-size:.82rem; color:var(--water-deep)">Ksat = ${rate(ksat)} ${U.k}</span> <span class="faint">(${gen.ksat==='field'?'field mean':'design target'})</span>
+    </div>`;
+  renderCompare();
+}
+function hlLayer(line){ return line.replace(/(-?\d+\.?\d*)/g,'<span class="n">$1</span>'); }
+
+['genMedia|media','genVeg|veg','genKsat|ksat','genUnits|units'].forEach(p=>{ const [id,key]=p.split('|'); segBind(id,key); });
+document.getElementById('genClog').oninput=e=>{ gen.clog=+e.target.value; document.getElementById('genClogVal').textContent=gen.clog; buildInp(); syncURL(false); };
+document.getElementById('genCopy').onclick=()=>{ copyText(document.getElementById('genCode').dataset.plain||'', document.getElementById('genCopy')); };
+document.getElementById('genDownload').onclick=()=>{
+  const plain = document.getElementById('genCode').dataset.plain || '';
+  const blob=new Blob([plain],{type:'text/plain'}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=`bioretention_${gen.media}_${gen.veg}.inp.txt`; a.click(); URL.revokeObjectURL(url);
+};
+
+/* =========================================================================
+   COMPARE MEDIA — two-column SOIL-line diff
+   ========================================================================= */
+const cmp = {a:'coc70', b:'cl'};
+const trimNum = v => (Math.round(v*100)/100).toString();
+function soilTokens(mk, si){
+  const m=MEDIA[mk];
+  const dep=v=>si?v:+mm2in(v).toFixed(2);
+  const rate=v=>si?v:+mm2in(v).toFixed(2);
+  return { Thick:dep(600), Por:m.por.toFixed(2), FC:m.fc.toFixed(2), WP:m.wp.toFixed(2),
+           Ksat:rate(m.mean), Kcoeff:m.kco, Suct:dep(m.suct) };
+}
+function renderCompare(){
+  const box=document.getElementById('cmpOut'); if(!box) return;
+  const si=gen.units==='si', dU=si?'mm':'in', rU=si?'mm/h':'in/h';
+  const A=MEDIA[cmp.a], B=MEDIA[cmp.b];
+  const dep=v=>si?v:+mm2in(v).toFixed(2), rate=v=>si?v:+mm2in(v).toFixed(2);
+  const rows=[
+    {k:'Saturated Ksat — field mean', u:rU, a:rate(A.mean), b:rate(B.mean), ratio:true, dir:true},
+    {k:'Ksat — design target',        u:rU, a:rate(A.design), b:rate(B.design), ratio:true},
+    {k:'Porosity',                    u:'', a:A.por, b:B.por},
+    {k:'Field capacity',              u:'', a:A.fc,  b:B.fc},
+    {k:'Wilting point',               u:'', a:A.wp,  b:B.wp},
+    {k:'Conductivity slope (Kcoeff)', u:'', a:A.kco, b:B.kco},
+    {k:'Suction head',                u:dU, a:dep(A.suct), b:dep(B.suct)}
+  ];
+  let body='';
+  rows.forEach(r=>{
+    const differs = +r.a !== +r.b;
+    let delta;
+    if(r.ratio){
+      const ratio = r.a>0 ? r.b/r.a : 0;
+      const cls = r.dir ? (r.b>r.a?'pos':(r.b<r.a?'neg':'')) : '';
+      delta = `<span class="${cls}">${ratio>=1?ratio.toFixed(2)+'×':'÷'+(1/ratio).toFixed(2)}</span>`;
+    } else {
+      const d=r.b-r.a; delta = (d===0?'—':(d>0?'+':'')+trimNum(d));
+    }
+    body += `<tr class="${differs?'diff':''}"><td>${r.k}</td><td class="mono">${trimNum(r.a)}${r.u?' '+r.u:''}</td><td class="mono">${trimNum(r.b)}${r.u?' '+r.u:''}</td><td class="mono">${delta}</td></tr>`;
+  });
+  // headline
+  let head;
+  if(cmp.a===cmp.b){
+    head = `<div class="call amber"><span class="lab">Same media</span>Pick two different media to see the contrast.</div>`;
+  } else {
+    const hi = A.mean>=B.mean ? A : B, lo = A.mean>=B.mean ? B : A;
+    const ratio = (hi.mean/lo.mean).toFixed(1);
+    const fines = hi.label==='CL' ? ' — and it does so carrying the most fines, the paper\'s central surprise' : '';
+    head = `<div class="call grow"><span class="lab">At a glance</span><b>${hi.label}</b> infiltrates <b>${ratio}×</b> ${lo.label}'s field rate (${hi.mean} vs ${lo.mean} mm/h)${fines}.</div>`;
+  }
+  // SOIL-line token diff
+  const tA=soilTokens(cmp.a,si), tB=soilTokens(cmp.b,si);
+  const order=['Thick','Por','FC','WP','Ksat','Kcoeff','Suct'];
+  const lineA=order.map(k=>{const d=String(tA[k])!==String(tB[k]); return d?`<span class="d">${tA[k]}</span>`:tA[k];}).join('  ');
+  const lineB=order.map(k=>{const d=String(tA[k])!==String(tB[k]); return d?`<span class="d">${tB[k]}</span>`:tB[k];}).join('  ');
+  box.innerHTML = head +
+    `<table class="tbl" style="margin-top:12px"><thead><tr><th>SOIL field</th><th>${A.label}</th><th>${B.label}</th><th>Δ (B vs A)</th></tr></thead><tbody>${body}</tbody></table>` +
+    `<p class="note" style="margin-top:12px">The two SOIL lines, field-mean Ksat, ${dU}/${rU} — highlighted tokens are what changes:</p>` +
+    `<div class="dline">SOIL  ${lineA}<span class="tag">${A.label}</span></div>` +
+    `<div class="dline">SOIL  ${lineB}<span class="tag">${B.label}</span></div>`;
+}
+function bindSeg2(id, onpick){
+  document.querySelectorAll(`#${id} button`).forEach(b=>{
+    b.onclick=()=>{ document.querySelectorAll(`#${id} button`).forEach(x=>x.classList.remove('on')); b.classList.add('on'); onpick(b.dataset.v); };
+  });
+}
+bindSeg2('cmpA', v=>{ cmp.a=v; renderCompare(); });
+bindSeg2('cmpB', v=>{ cmp.b=v; renderCompare(); });
+
+/* =========================================================================
+   PASTE-AND-MAP — read a user's [LID_CONTROLS] BC block
+   ========================================================================= */
+const LID_FIELDS={
+  SURFACE:['StorHt','VegFrac','Rough','Slope','Xslope'],
+  SOIL:['Thick','Por','FC','WP','Ksat','Kcoeff','Suction'],
+  PAVEMENT:['Thick','Vratio','FracImp','Perm','Clog','RegenDays','RegenDepth'],
+  STORAGE:['Height','Vratio','Seepage','Clog'],
+  DRAIN:['Coeff','Expon','Offset','Delay','Hopen','Hclose','Qcurve'],
+  DRAINMAT:['Thick','Vratio','Rough']
+};
+const LID_TYPES={BC:'Bio-Retention Cell',RG:'Rain Garden',GR:'Green Roof',IT:'Infiltration Trench',PP:'Permeable Pavement',RB:'Rain Barrel',RD:'Rooftop Disconnection',VS:'Vegetative Swale'};
+const LID_MEAN={
+  SURFACE:{StorHt:'Surface ponding / berm height before overflow',VegFrac:'Fraction of surface volume taken up by vegetation',Rough:"Manning's n for overland flow on the surface",Slope:'Surface slope (%)',Xslope:'Side slope — only used for swale geometry'},
+  SOIL:{Thick:'Engineered media depth',Por:'Soil porosity (void fraction)',FC:'Field capacity — moisture retained after free drainage',WP:'Wilting point — moisture roots cannot extract below',Ksat:"Saturated conductivity — the media's infiltration rate (the study's η²=0.89 lever)",Kcoeff:'Conductivity slope — how steeply Ksat falls with moisture deficit (NOT a time/aging term)',Suction:'Suction head at the wetting front'},
+  STORAGE:{Height:'Gravel storage layer thickness',Vratio:'Void ratio of the storage layer',Seepage:'Bottom exfiltration rate into native soil (0 = lined)',Clog:'Clogging factor — void-volumes of inflow to fully clog bottom seepage (the only time-varying knob, and it only decreases)'},
+  DRAIN:{Coeff:'Underdrain flow coefficient',Expon:'Underdrain flow exponent',Offset:'Drain height above the storage bottom',Delay:'Dry-weather delay before the drain opens (h)',Hopen:'Head that opens the drain',Hclose:'Head that closes the drain',Qcurve:'Optional control curve'},
+  PAVEMENT:{Thick:'Pavement layer thickness',Vratio:'Void ratio',FracImp:'Impervious fraction of paver surface',Perm:'Permeability of the pavement',Clog:'Clogging factor (decreases permeability over time)',RegenDays:'Days between clogging regeneration',RegenDepth:'Regeneration depth'},
+  DRAINMAT:{Thick:'Drainage mat thickness',Vratio:'Void ratio',Rough:"Manning's n for flow through the mat"}
+};
+function parseInp(text){
+  let name=null,type=null; const layers=[];
+  text.split(/\r?\n/).forEach(raw=>{
+    const line=raw.split(';')[0].trim();
+    if(!line || /^\[.*\]$/.test(line)) return;
+    const tok=line.split(/\s+/);
+    const kwIdx=tok.findIndex(t=>LID_FIELDS[t.toUpperCase()]);
+    if(kwIdx>=0){
+      const K=tok[kwIdx].toUpperCase();
+      if(!name && kwIdx>0) name=tok[0];
+      layers.push({layer:K, fields:LID_FIELDS[K], vals:tok.slice(kwIdx+1)});
+    } else if(tok.length>=2 && LID_TYPES[tok[1].toUpperCase()]){
+      name=tok[0]; type=tok[1].toUpperCase();
+    }
+  });
+  return {name,type,typeName:LID_TYPES[type]||null,layers};
+}
+function renderMap(){
+  const box=document.getElementById('mapOut');
+  const text=document.getElementById('mapIn').value;
+  if(!text.trim()){ box.innerHTML='<div class="call amber"><span class="lab">Nothing to read</span>Paste a [LID_CONTROLS] block, or hit "Load sample".</div>'; return; }
+  const si = document.querySelector('#mapUnits button.on').dataset.v==='si';
+  const p=parseInp(text);
+  if(!p.layers.length){ box.innerHTML='<div class="call alert"><span class="lab">Couldn\'t parse it</span>I didn\'t find any SURFACE / SOIL / STORAGE / DRAIN lines. Paste the layer lines as they appear in [LID_CONTROLS] — name, keyword, then the numbers.</div>'; return; }
+  const unitFor=(layer,field)=>{
+    const depF={SURFACE:['StorHt'],SOIL:['Thick','Suction'],STORAGE:['Height'],PAVEMENT:['Thick'],DRAINMAT:['Thick']};
+    const rateF={SOIL:['Ksat'],STORAGE:['Seepage'],PAVEMENT:['Perm']};
+    if((depF[layer]||[]).includes(field)) return si?'mm':'in';
+    if((rateF[layer]||[]).includes(field)) return si?'mm/h':'in/h';
+    return '';
+  };
+  let html = `<div class="call"><span class="lab">Detected</span><b>${p.name||'(unnamed)'}</b> — ${p.typeName?('<b>'+p.typeName+'</b>'+(p.type!=='BC'?'; not a Bio-Retention Cell, but the layer fields still read below':'')):'control type not stated, so layers are read generically'}.</div>`;
+  p.layers.forEach(L=>{
+    const mean=LID_MEAN[L.layer]||{};
+    let rows='';
+    L.fields.forEach((f,i)=>{
+      const has=L.vals[i]!==undefined;
+      const u=unitFor(L.layer,f);
+      rows += `<tr><td class="mono">${f}</td><td class="mono">${has?L.vals[i]+(u?' '+u:''):'<span class="faint">—</span>'}</td><td class="muted">${mean[f]||''}</td></tr>`;
+    });
+    html += `<h4 style="margin:16px 0 6px; font-family:'IBM Plex Mono',monospace; font-size:.9rem; color:var(--ink)">${L.layer}</h4>`+
+            `<table class="tbl"><thead><tr><th>Field</th><th>Value</th><th>What it controls</th></tr></thead><tbody>${rows}</tbody></table>`;
+  });
+  const soil=p.layers.find(L=>L.layer==='SOIL'), stor=p.layers.find(L=>L.layer==='STORAGE');
+  let ins='';
+  if(soil){
+    const ks=parseFloat(soil.vals[4]);
+    if(!isNaN(ks)){
+      const ksmm=si?ks:ks*25.4;
+      const means=[['CoC 70',287],['CoC 40',479],['CL + wood chips',1086]];
+      let near=means[0],best=Infinity; means.forEach(m=>{const d=Math.abs(m[1]-ksmm); if(d<best){best=d;near=m;}});
+      ins += `<div class="call grow"><span class="lab">Ksat vs the study</span>Your SOIL Ksat ≈ <b>${ksmm.toFixed(0)} mm/h</b>${si?'':` (${ks} in/h)`}. Nearest field mean in the paper: <b>${near[0]}</b> at ${near[1]} mm/h. Media is the dominant driver (η²=0.89) — if this doesn't match the mix you actually built, it's the first number to fix.</div>`;
+    }
+  }
+  if(stor){
+    const seep=parseFloat(stor.vals[2]), clog=parseFloat(stor.vals[3]);
+    if(!isNaN(seep)){
+      ins += seep===0
+        ? `<div class="call"><span class="lab">Seepage 0</span>Lined cell — no exfiltration to native soil. As in the mesocosms, outflow leaves via the underdrain and the "infiltration" that matters is surface→soil percolation (SOIL Ksat).</div>`
+        : `<div class="call"><span class="lab">Seepage ${stor.vals[2]}</span>The cell exfiltrates to native soil. Surface percolation (SOIL Ksat) and this bottom loss both move water — and the clogging factor acts on this bottom seepage.</div>`;
+    }
+    if(!isNaN(clog)){
+      ins += clog===0
+        ? `<div class="call grow"><span class="lab">Clogging factor 0</span>No programmed decline — exactly what the study recommends for coarse-sediment, well-vegetated cells. Sensible default.</div>`
+        : `<div class="call alert"><span class="lab">Clogging factor ${stor.vals[3]}</span>SWMM will linearly cut bottom seepage to zero over ${stor.vals[3]} storage void-volumes of captured runoff — a built-in <b>decline</b>, the opposite of this paper's four-year rise. Keep it only if site sediment data justifies it; otherwise set it to 0.</div>`;
+    }
+  }
+  ins += `<div class="call amber"><span class="lab">The gap that remains</span>Nothing in this block <i>ages</i> the cell. The SOIL conductivity slope (Kcoeff) bends Ksat with moisture deficit, not time. To represent rising infiltration you re-run with a higher SOIL Ksat through scenarios (ICM tab) — SWMM5 has no parameter that raises Ksat over a single run.</div>`;
+  html += `<div style="margin-top:14px; display:grid; gap:10px">${ins}</div>`;
+  box.innerHTML=html;
+}
+const MAP_SAMPLE=`[LID_CONTROLS]
+;;Name      Type/Layer  Par1  Par2  Par3  Par4  Par5  Par6  Par7
+LegacyCell  BC
+LegacyCell  SURFACE   300  0.10  0.24  1.0  0
+LegacyCell  SOIL      600  0.45  0.10  0.05  250  40  90
+LegacyCell  STORAGE   300  0.75  0  50
+LegacyCell  DRAIN     2.0  0.5  0  0  0  0`;
+bindSeg2('mapUnits', ()=>{ if(document.getElementById('mapOut').innerHTML.trim()) renderMap(); });
+document.getElementById('mapBtn').onclick=renderMap;
+document.getElementById('mapSample').onclick=()=>{ document.getElementById('mapIn').value=MAP_SAMPLE; renderMap(); };
+
+/* =========================================================================
+   SWMM6 CARDS
+   ========================================================================= */
+const SWMM6 = [
+  {n:'01', t:'Maturation-driven Ksat', tag:'SOIL line', col:'#2f8f4e',
+   b:'A structure-development term that lets soil conductivity climb toward a mature ceiling along the +6.814 mm/h-per-event trajectory the study measured — the mirror image of today\'s clogging factor.'},
+  {n:'02', t:'Biologically-coupled structure', tag:'new process', col:'#0d7d8c',
+   b:'Couple a root/biomass or respiration (CO₂) state to porosity and macropore evolution. The paper\'s exploratory CO₂ proxy and Carex root story point straight at this module.'},
+  {n:'03', t:'Particle-size-aware clogging', tag:'STORAGE line', col:'#bf8500',
+   b:'Clogging that depends on inflow D50 vs media pore size, not just volume. Coarse sediment (0.693 mm > pores) didn\'t seal these cells — SWMM5\'s volume-only clogging can\'t express that.'},
+  {n:'04', t:'Freeze-thaw pore enhancement', tag:'cold-climate', col:'#0a5b66',
+   b:'A seasonal term where freeze-thaw cycles raise pore structure and Ksat — the authors\' leading explanation for part of the rise, and a flagged research gap.'},
+  {n:'05', t:'Vegetation-class subsurface effect', tag:'SURFACE+', col:'#216b3a',
+   b:'Let vegetation type modulate the subsurface, not just surface storage. Today VegFrac only trims surface void volume; it can\'t represent herbaceous-vs-turf root differences.'},
+  {n:'06', t:'Per-unit trajectory + uncertainty', tag:'solver', col:'#574330',
+   b:'The LMM needed a significant random slope per cell. A modern engine could carry per-LID-unit development parameters and propagate the spread — Monte Carlo longevity, not a single line.'}
+];
+function buildSwmm6(){
+  const box=document.getElementById('swmm6cards');
+  box.innerHTML = SWMM6.map(c=>`
+    <div class="card reveal">
+      <div style="display:flex; align-items:baseline; gap:10px">
+        <span class="mono" style="font-size:1.4rem; font-weight:600; color:${c.col}">${c.n}</span>
+        <div>
+          <h3 style="font-size:1.18rem">${c.t}</h3>
+          <span class="pill" style="background:${c.col}1a; color:${c.col}; margin-top:4px; display:inline-block">${c.tag}</span>
+        </div>
+      </div>
+      <p class="muted" style="font-size:.92rem; margin:12px 0 0">${c.b}</p>
+    </div>`).join('');
+}
+
+/* =========================================================================
+   DECISION HELPER
+   ========================================================================= */
+const dh = {sed:'coarse', veg:'herb', ip:'low', pre:'yes'};
+function dhBind(){
+  document.querySelectorAll('[data-dh]').forEach(seg=>{
+    const key=seg.dataset.dh;
+    seg.querySelectorAll('button').forEach(b=>{
+      b.onclick=()=>{ seg.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); dh[key]=b.dataset.v; dhRender(); };
+    });
+  });
+}
+function dhRender(){
+  let score=0;
+  // higher score => more reason to APPLY a clogging factor
+  score += dh.sed==='fine'?2 : dh.sed==='mixed'?1 : 0;
+  score += dh.veg==='turf'?2 : dh.veg==='woody'?1 : 0;
+  score += dh.ip==='high'?1 : 0;
+  score += dh.pre==='no'?1 : 0;
+  let verdict, body, cls, clog;
+  if(score<=1){ verdict='Set clogging factor = 0'; clog='Clog = 0'; cls='grow';
+    body='Your system resembles the study (coarse sediment, vigorous vegetation, modest loading). The four years of data show infiltration holding or rising. A nonzero clogging factor would invent a decline the evidence contradicts — calibrate Ksat to the media and leave clogging off.'; }
+  else if(score<=3){ verdict='Low clogging factor, and monitor'; clog='Clog ≈ 25–75'; cls='amber';
+    body='You\'re partway from the study\'s favorable regime. A small clogging factor as a conservative hedge is defensible, but don\'t over-apply the textbook decline. Add pretreatment if you can, and validate against any monitoring data before trusting a steep decline.'; }
+  else { verdict='Apply clogging + pretreatment'; clog='Clog ≈ 100+'; cls='alert';
+    body='Fine sediment, weak vegetation, and high loading move you away from the conditions where clogging stayed absent. Here the classic decline risk is real: include a meaningful clogging factor, design sedimentation pretreatment upstream, and plan for maintenance.'; }
+  document.getElementById('dhOut').innerHTML =
+    `<div class="eyebrow" style="color:var(--ink-faint)">Recommendation</div>
+     <div class="dh-verdict">${verdict}</div>
+     <div class="call ${cls}" style="margin:8px 0 0"><span class="lab">SWMM / ICM setting</span><b class="mono">${clog}</b> on the STORAGE layer · ${body}</div>`;
+}
+
+/* =========================================================================
+   COPY BUTTONS (code blocks) — robust, with fallback for non-secure origins
+   ========================================================================= */
+function copyText(txt, btn){
+  const done=()=>{ if(btn){ const o=btn.textContent; btn.textContent='Copied'; setTimeout(()=>btn.textContent=o,1200); } };
+  const fail=()=>{ window.prompt('Copy with Ctrl/Cmd-C, then Enter:', txt); };
+  try{
+    if(navigator.clipboard && window.isSecureContext){
+      navigator.clipboard.writeText(txt).then(done).catch(()=>legacy());
+    } else { legacy(); }
+  }catch(e){ legacy(); }
+  function legacy(){
+    try{
+      const ta=document.createElement('textarea');
+      ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0'; ta.style.top='0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      const ok=document.execCommand('copy'); document.body.removeChild(ta);
+      ok ? done() : fail();
+    }catch(e){ fail(); }
+  }
+}
+document.querySelectorAll('.copy').forEach(btn=>{
+  btn.onclick=()=>{ const t=document.getElementById(btn.dataset.copy); copyText(t.innerText, btn); };
+});
+
+/* =========================================================================
+   REVEAL ON SCROLL
+   ========================================================================= */
+let io;
+function revealScan(){
+  if(!io){ io=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} }),{threshold:.12}); }
+  document.querySelectorAll('.panel.active .reveal:not(.in)').forEach(r=>io.observe(r));
+}
+
+/* =========================================================================
+   HERO COLUMN ANIMATION (drawdown loop)
+   ========================================================================= */
+function animateHero(){
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const pond=document.getElementById('pond'); if(!pond) return;
+  let t=0;
+  setInterval(()=>{
+    t=(t+0.02)%1;
+    // ease drawdown then refill
+    const phase = t<0.7 ? t/0.7 : 0; // draw down over 70%, then snap refill
+    const top = 44 + phase*38;       // y from 44 down to ~82
+    const h = 84 - top;
+    pond.setAttribute('y', top);
+    pond.setAttribute('height', Math.max(0,h));
+    [['inf1',0],['inf2',1],['inf3',2]].forEach(([id])=>{ const a=document.getElementById(id); if(a) a.setAttribute('opacity', (0.25+0.4*Math.abs(Math.sin((t+0.2)*6.28))).toFixed(2)); });
+  }, 60);
+}
+
+/* =========================================================================
+   WELCOME + TOUR
+   ========================================================================= */
+const SEEN='bioret_swmm_seen_v1';
+const welcome=document.getElementById('welcome');
+function openWelcome(){ welcome.classList.add('show'); }
+function closeWelcome(){ welcome.classList.remove('show'); sessionStorage.setItem(SEEN,'1'); }
+document.getElementById('helpBtn').onclick=openWelcome;
+document.getElementById('welcomeX').onclick=closeWelcome;
+document.getElementById('welcomeGo').onclick=closeWelcome;
+welcome.addEventListener('click',e=>{ if(e.target===welcome) closeWelcome(); });
+
+const TOUR=[
+  {sel:'.hero h1', tab:'finding', t:'The reversal', b:'Four years of field data found bioretention infiltration climbing 286 → 875 mm/h — the opposite of the clogging decline we design around.'},
+  {sel:'#effectChart', tab:'finding', t:'Which knob matters', b:'Media type dominates (η²=0.89). That\'s the SOIL conductivity in your model — calibrate it first.'},
+  {sel:'#bigCol', tab:'column', t:'One column, three models', b:'Click any layer of the cell to see the paper\'s reality next to the exact SWMM5 and ICM fields it drives.'},
+  {sel:'#clogChart', tab:'swmm5', t:'The SWMM5 gap', b:'Orange is what the clogging factor does — down only. Green is what the paper measured — up. SWMM5 has no knob for green.'},
+  {sel:'#genCode', tab:'swmm5', t:'Generate a real block', b:'Pick a media and vegetation; copy or download a calibrated [LID_CONTROLS] snippet straight into your model.'},
+  {sel:'#cmpOut', tab:'swmm5', t:'Compare two media', b:'Media is the dominant factor — set any two side by side and watch exactly which SOIL fields move, and by how much.'},
+  {sel:'#mapIn', tab:'swmm5', t:'Read your own block', b:'Paste a Bio-Retention Cell you already have; it translates every field, finds the nearest study media, and flags any built-in decline.'},
+  {sel:'#swmm6cards', tab:'swmm6', t:'The feature request', b:'Every result that needs a hack today could be a SWMM6 process module. Here\'s the brief for the TAC.'}
+];
+let ti=0;
+const tourOverlay=document.getElementById('tourOverlay'), tourTip=document.getElementById('tourTip'), spot=document.getElementById('spotlight');
+function startTour(){ closeWelcome(); ti=0; tourOverlay.classList.add('show'); document.getElementById('tourTotal').textContent=TOUR.length; showTour(); }
+function showTour(){
+  const s=TOUR[ti]; go(s.tab);
+  setTimeout(()=>{
+    const tgt=document.querySelector(s.sel);
+    document.getElementById('tourStep').textContent=ti+1;
+    document.getElementById('tourTitle').textContent=s.t;
+    document.getElementById('tourBody').textContent=s.b;
+    document.getElementById('tourPrev').style.visibility = ti===0?'hidden':'visible';
+    document.getElementById('tourNext').textContent = ti===TOUR.length-1?'Done':'Next';
+    tourTip.classList.add('show'); spot.classList.add('show');
+    if(tgt){
+      tgt.scrollIntoView({behavior:'smooth', block:'center'});
+      setTimeout(()=>{
+        const r=tgt.getBoundingClientRect();
+        spot.style.top=(r.top-8)+'px'; spot.style.left=(r.left-8)+'px'; spot.style.width=(r.width+16)+'px'; spot.style.height=(r.height+16)+'px';
+        let tipTop=r.bottom+14; if(tipTop>window.innerHeight-200) tipTop=Math.max(14,r.top-200);
+        tourTip.style.top=tipTop+'px';
+        tourTip.style.left=Math.max(14,Math.min(r.left, window.innerWidth-350))+'px';
+      },380);
+    } else { spot.classList.remove('show'); tourTip.style.top='40%'; tourTip.style.left='50%'; tourTip.style.transform='translateX(-50%)'; }
+  },120);
+}
+function endTour(){ tourOverlay.classList.remove('show'); tourTip.classList.remove('show'); spot.classList.remove('show'); tourTip.style.transform=''; }
+document.getElementById('welcomeTour').onclick=startTour;
+document.getElementById('tourNext').onclick=()=>{ ti<TOUR.length-1?(ti++,showTour()):endTour(); };
+document.getElementById('tourPrev').onclick=()=>{ if(ti>0){ti--;showTour();} };
+document.getElementById('tourSkip').onclick=endTour;
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeWelcome(); endTour(); } });
+
+/* =========================================================================
+   MAKE-A-GIF WALKTHROUGH  (gif.js + html2canvas; graceful fallback)
+   ========================================================================= */
+const GIF_STEPS=[
+  {cap:'Bioretention infiltration rose, not fell — over 4 years', tab:'finding', hold:1100},
+  {cap:'Media type dominates (η²=0.89) → your SOIL Ksat', tab:'finding', sel:'#effectChart', hold:1100},
+  {cap:'One soil column maps to SWMM5 + ICM fields', tab:'column', sel:'#bigCol', hold:1100},
+  {cap:'SWMM5 clogging only goes down; the paper goes up', tab:'swmm5', sel:'#clogChart', hold:1200},
+  {cap:'Generate a calibrated [LID_CONTROLS] block', tab:'swmm5', sel:'#genCode', hold:1100},
+  {cap:'SWMM6: the maturation module this paper asks for', tab:'swmm6', sel:'#swmm6cards', hold:1200}
+];
+function gifStatus(msg, show=true){ const s=document.getElementById('gifStatus'); s.textContent=msg; s.style.display=show?'block':'none'; }
+async function makeGif(){
+  if(typeof GIF==='undefined' || typeof html2canvas==='undefined'){
+    gifStatus('GIF tools blocked here — host on Netlify to record. Showing the tour instead.', true);
+    setTimeout(()=>gifStatus('',false), 4200); startTour(); return;
+  }
+  const btn=document.getElementById('gifBtn'); btn.disabled=true;
+  gifStatus('Recording walkthrough…');
+  try{
+    const gif=new GIF({workers:2, quality:12, width:760, height:460, workerScript:'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js'});
+    // intro card
+    const intro=document.createElement('canvas'); intro.width=760; intro.height=460; const ic=intro.getContext('2d');
+    const grad=ic.createLinearGradient(0,0,760,460); grad.addColorStop(0,'#15202b'); grad.addColorStop(1,'#0a5b66');
+    ic.fillStyle=grad; ic.fillRect(0,0,760,460);
+    ic.fillStyle='#9ee493'; ic.font='600 40px Newsreader, serif'; ic.fillText('Infiltration went UP,', 60, 200);
+    ic.fillStyle='#fff'; ic.fillText('not down.', 60, 252);
+    ic.fillStyle='#cfe7ea'; ic.font='400 18px IBM Plex Mono, monospace'; ic.fillText('Bioretention 2026 → SWMM5 · ICM · SWMM6', 60, 312);
+    gif.addFrame(intro,{delay:1500});
+
+    for(const st of GIF_STEPS){
+      go(st.tab);
+      await new Promise(r=>setTimeout(r,420));
+      const tgt = st.sel ? (document.querySelector(st.sel)||document.querySelector('.panel.active')) : document.querySelector('.panel.active');
+      tgt.scrollIntoView({behavior:'instant', block:'center'});
+      await new Promise(r=>setTimeout(r,260));
+      const shot=await html2canvas(tgt,{scale:1, backgroundColor:'#f2f3ef', logging:false, windowWidth:document.documentElement.clientWidth});
+      // composite onto fixed-size frame with caption bar
+      const fr=document.createElement('canvas'); fr.width=760; fr.height=460; const c=fr.getContext('2d');
+      c.fillStyle='#f2f3ef'; c.fillRect(0,0,760,460);
+      const availH=460-44; const scale=Math.min(760/shot.width, availH/shot.height);
+      const dw=shot.width*scale, dh2=shot.height*scale;
+      c.drawImage(shot,(760-dw)/2,(availH-dh2)/2,dw,dh2);
+      c.fillStyle='#15202b'; c.fillRect(0,460-44,760,44);
+      c.fillStyle='#fff'; c.font='600 16px IBM Plex Sans, sans-serif'; c.textBaseline='middle';
+      c.fillText(st.cap, 18, 460-22);
+      gif.addFrame(fr,{delay:st.hold||1100});
+    }
+    gif.on('finished', blob=>{
+      const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='bioretention-swmm-walkthrough.gif'; a.click(); URL.revokeObjectURL(url);
+      gifStatus('GIF downloaded ✓', true); setTimeout(()=>gifStatus('',false),2600); btn.disabled=false;
+    });
+    gif.render();
+  }catch(err){
+    console.error(err); gifStatus('Recording failed — try on Netlify. Running the tour.', true);
+    setTimeout(()=>gifStatus('',false),3800); btn.disabled=false; startTour();
+  }
+}
+document.getElementById('gifBtn').onclick=makeGif;
+
+/* count-up for the hero metric numbers (respects reduced motion) */
+function countUpMetrics(){
+  document.querySelectorAll('.cnt').forEach(elm=>{
+    const to=parseFloat(elm.dataset.to), dp=+(elm.dataset.dp||0), pre=elm.dataset.prefix||'';
+    const fmt=v=>pre+v.toFixed(dp);
+    if(PRM){ elm.textContent=fmt(to); return; }
+    const dur=900, t0=performance.now();
+    function step(now){
+      const k=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-k,3); // easeOutCubic
+      elm.textContent=fmt(to*e);
+      if(k<1) requestAnimationFrame(step); else elm.textContent=fmt(to);
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+/* =========================================================================
+   INIT
+   ========================================================================= */
+const _initTab = applyURLToGen();           // read shareable deep-link state
+buildTempToggles(); drawTemporal(); drawEffects();
+document.getElementById('clogSlide').oninput=e=>{ document.getElementById('clogVal').textContent=e.target.value; drawClog(); };
+drawClog();
+syncGenUI(); buildSwmm6(); dhBind(); dhRender();   // syncGenUI reflects gen → controls, then buildInp
+renderCompare();
+if(_initTab) go(_initTab, {push:false, scroll:false}); else syncURL(false);
+animateHero();
+countUpMetrics();
+revealScan();
+let _rzTimer=null;
+window.addEventListener('resize', ()=>{
+  if(_rzTimer) cancelAnimationFrame(_rzTimer);
+  _rzTimer=requestAnimationFrame(()=>{ drawTemporal(); drawEffects(); drawClog(); });
+});
+if(!sessionStorage.getItem(SEEN)) setTimeout(openWelcome, 500);
+</script>
+</body>
+</html>

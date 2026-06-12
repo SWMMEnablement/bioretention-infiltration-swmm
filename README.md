@@ -6,7 +6,8 @@ Four years of field data from 24 lined mesocosms in Okotoks, Alberta found somet
 
 ## Live demo
 
-- GitHub Pages: https://dickinsonre.github.io/bioretention-infiltration-swmm/ (live once Pages is enabled, see "Running it" below)
+- App (GitHub Pages): https://swmmenablement.github.io/bioretention-infiltration-swmm/
+- Source (GitHub): https://github.com/SWMMEnablement/bioretention-infiltration-swmm
 - Netlify: add your Netlify URL here after you deploy it
 
 ## What it does

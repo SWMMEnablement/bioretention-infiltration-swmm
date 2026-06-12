@@ -8,7 +8,7 @@ Four years of field data from 24 lined mesocosms in Okotoks, Alberta found somet
 
 - App (GitHub Pages): https://swmmenablement.github.io/bioretention-infiltration-swmm/
 - Source (GitHub): https://github.com/SWMMEnablement/bioretention-infiltration-swmm
-- Netlify: [add your Netlify URL here after you deploy it](https://bioretention-infiltration-swmm-kwl.netlify.app/)
+- Netlify: https://bioretention-infiltration-swmm-kwl.netlify.app/
 
 ## What it does
 
